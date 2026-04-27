@@ -1,8 +1,14 @@
 <template>
   <div class="h-screen flex flex-col bg-gray-100">
     <header class="bg-white border-b px-4 py-3 flex items-center justify-between">
-      <h1 class="text-lg font-semibold">Cookie Manager</h1>
+      <div class="flex items-center gap-3">
+        <h1 class="text-lg font-semibold">Cookie Manager</h1>
+        <span class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+          {{ domainFilter || 'All domains' }}
+        </span>
+      </div>
       <div class="flex gap-2">
+        <button @click="clearDomainFilter" v-if="domainFilter" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Show All</button>
         <button @click="showNewModal = true" class="px-3 py-1.5 bg-chrome-blue text-white rounded-lg hover:bg-blue-600 text-sm">New Cookie</button>
         <button @click="showSettings = true" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Settings</button>
         <button @click="loadAllCookies" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Refresh</button>
@@ -84,6 +90,7 @@ const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const keywordFilter = ref('')
 const attributeFilter = ref('')
+const domainFilter = ref('')
 
 const currentDomain = computed(() => cookieStore.currentDomain || 'example.com')
 
@@ -93,6 +100,10 @@ const messageClass = computed(() =>
 
 const filteredCookies = computed(() => {
   let result = cookieStore.cookies
+  if (domainFilter.value) {
+    const df = domainFilter.value.toLowerCase()
+    result = result.filter(c => c.domain.toLowerCase().includes(df))
+  }
   if (keywordFilter.value) {
     const kw = keywordFilter.value.toLowerCase()
     result = result.filter(c =>
@@ -117,6 +128,7 @@ function showMessage(text: string, type: 'success' | 'error' = 'success') {
 
 function handleKeywordUpdate(kw: string) { keywordFilter.value = kw }
 function handleAttributeUpdate(attr: string) { attributeFilter.value = attr }
+function clearDomainFilter() { domainFilter.value = '' }
 
 function handleEdit(cookie: CookieItem) {
   editingCookie.value = cookie
@@ -215,6 +227,22 @@ async function init() {
   if (response?.success && response?.data) {
     clipboardStore.items = response.data
   }
+  
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (tab?.url) {
+      try {
+        const url = new URL(tab.url)
+        cookieStore.currentDomain = url.hostname
+        domainFilter.value = url.hostname
+      } catch {
+        // Invalid URL
+      }
+    }
+  } catch {
+    // Cannot access tabs
+  }
+  
   await loadAllCookies()
 }
 
