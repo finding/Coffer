@@ -455,14 +455,11 @@ async function loadStorageForDomain(tabId: number | null, domain: string) {
 }
 
 watch(activeTab, async (newTab) => {
-  if ((newTab === 'local' || newTab === 'session') && domainFilter.value) {
+  if (newTab === 'local' || newTab === 'session') {
     const tabId = localStorageStore.currentTabId || sessionStorageStore.currentTabId
-    if (!tabId) {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
-      const currentTab = tabs[0]
-      if (currentTab?.id) {
-        await loadStorageForDomain(currentTab.id, domainFilter.value)
-      }
+    const domain = domainFilter.value || localStorageStore.currentDomain || sessionStorageStore.currentDomain
+    if (tabId && domain) {
+      await loadStorageForDomain(tabId, domain)
     }
   }
 })
