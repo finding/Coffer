@@ -61,7 +61,7 @@ try {
 // Push commit and tag
 console.log('🚀 Pushing to origin...')
 try {
-  execSync('git push origin master', { cwd: rootDir, stdio: 'inherit' })
+  execSync('git push origin main', { cwd: rootDir, stdio: 'inherit' })
   execSync(`git push origin v${version}`, { cwd: rootDir, stdio: 'inherit' })
 } catch (e) {
   console.error('Error pushing to origin')
