@@ -11,13 +11,18 @@ export class CookieManager {
   }
 
   async setCookie(cookie: CookieItem, url: string): Promise<CookieItem | null> {
-    const result = await chrome.cookies.set({
-      url, name: cookie.name, value: cookie.value,
-      domain: cookie.domain, path: cookie.path,
-      secure: cookie.secure, httpOnly: cookie.httpOnly,
-      sameSite: cookie.sameSite, expirationDate: cookie.expirationDate,
-      storeId: cookie.storeId
-    })
+    const details: chrome.cookies.SetDetails = {
+      url, 
+      name: cookie.name, 
+      value: cookie.value,
+      domain: cookie.domain, 
+      path: cookie.path,
+      secure: cookie.sameSite === 'no_restriction' ? true : cookie.secure,
+      httpOnly: cookie.httpOnly,
+      sameSite: cookie.sameSite, 
+      expirationDate: cookie.expirationDate
+    }
+    const result = await chrome.cookies.set(details)
     return result ? this.mapChromeCookie(result) : null
   }
 

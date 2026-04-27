@@ -92,11 +92,19 @@ async function handlePaste() {
   loading.value = true
   try {
     const cookies = await clipboardStore.pasteCookies(cookieStore.currentDomain)
-    if (!cookies) { showMessage('No cookies to paste', 'error'); return }
-    await cookieManager.setCookies(cookies, `https://${cookieStore.currentDomain}`)
+    if (!cookies) { 
+      showMessage('No cookies to paste - copy some first', 'error')
+      return
+    }
+    console.log('Pasting cookies:', cookies)
+    const domain = cookieStore.currentDomain.replace(/^\./, '')
+    await cookieManager.setCookies(cookies, `https://${domain}`)
     await cookieStore.loadCookies(cookieStore.currentDomain)
     showMessage(`Pasted ${cookies.length} cookies`)
-  } catch { showMessage('Failed to paste cookies', 'error') }
+  } catch (err) {
+    console.error('Paste error:', err)
+    showMessage(`Failed to paste: ${err}`, 'error')
+  }
   finally { loading.value = false }
 }
 
