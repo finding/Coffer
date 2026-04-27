@@ -9,32 +9,72 @@
       </div>
       <div class="flex gap-2">
         <button @click="clearDomainFilter" v-if="domainFilter" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Show All</button>
-        <button @click="showNewModal = true" class="px-3 py-1.5 bg-chrome-blue text-white rounded-lg hover:bg-blue-600 text-sm">New Cookie</button>
+        <button @click="handleNew" class="px-3 py-1.5 bg-chrome-blue text-white rounded-lg hover:bg-blue-600 text-sm">{{ newButtonLabel }}</button>
         <button @click="showSettings = true" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Settings</button>
-        <button @click="loadAllCookies" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Refresh</button>
+        <button @click="handleRefresh" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Refresh</button>
       </div>
     </header>
 
-    <FilterBar
-      @update:keyword="handleKeywordUpdate"
-      @update:attribute="handleAttributeUpdate"
-    />
+    <TabNav v-model:active="activeTab" :counts="tabCounts" />
 
-    <CookieList
-      :cookies="filteredCookies"
-      :selected="selectedCookies"
-      @update:selected="selectedCookies = $event"
-      @edit="handleEdit"
-      @delete="handleDelete"
-      @copy="handleSingleCopy"
-    />
+    <template v-if="activeTab === 'cookies'">
+      <FilterBar
+        @update:keyword="handleKeywordUpdate"
+        @update:attribute="handleAttributeUpdate"
+      />
 
-    <BatchActions
-      :selected-count="selectedCookies.size"
-      @copy="handleBatchCopy"
-      @delete="handleBatchDelete"
-      @export="handleBatchExport"
-    />
+      <CookieList
+        :cookies="filteredCookies"
+        :selected="selectedCookies"
+        @update:selected="selectedCookies = $event"
+        @edit="handleEdit"
+        @delete="handleDelete"
+        @copy="handleSingleCopy"
+      />
+
+      <BatchActions
+        :selected-count="selectedCookies.size"
+        @copy="handleBatchCopy"
+        @delete="handleBatchDelete"
+        @export="handleBatchExport"
+      />
+    </template>
+
+    <template v-else-if="activeTab === 'local'">
+      <StorageList
+        :items="localStorageStore.filteredItems"
+        :selected="selectedLocalStorageItems"
+        @update:selected="selectedLocalStorageItems = $event"
+        @edit="handleStorageEdit('local', $event)"
+        @delete="handleStorageDelete('local', $event)"
+        @copy="handleStorageSingleCopy('local', $event)"
+      />
+
+      <BatchActions
+        :selected-count="selectedLocalStorageItems.size"
+        @copy="handleStorageBatchCopy('local')"
+        @delete="handleStorageBatchDelete('local')"
+        @export="handleStorageBatchExport('local')"
+      />
+    </template>
+
+    <template v-else-if="activeTab === 'session'">
+      <StorageList
+        :items="sessionStorageStore.filteredItems"
+        :selected="selectedSessionStorageItems"
+        @update:selected="selectedSessionStorageItems = $event"
+        @edit="handleStorageEdit('session', $event)"
+        @delete="handleStorageDelete('session', $event)"
+        @copy="handleStorageSingleCopy('session', $event)"
+      />
+
+      <BatchActions
+        :selected-count="selectedSessionStorageItems.size"
+        @copy="handleStorageBatchCopy('session')"
+        @delete="handleStorageBatchDelete('session')"
+        @export="handleStorageBatchExport('session')"
+      />
+    </template>
 
     <CookieDetail
       v-if="showDetailModal"
@@ -52,6 +92,20 @@
       />
     </div>
 
+    <StorageDetail
+      v-if="showStorageDetail"
+      :item="editingStorageItem"
+      @close="closeStorageDetail"
+      @save="handleStorageSave"
+    />
+
+    <div v-if="showNewStorageModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showNewStorageModal = false">
+      <StorageDetail
+        @close="showNewStorageModal = false"
+        @save="handleStorageSave"
+      />
+    </div>
+
     <div v-if="showSettings" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showSettings = false">
       <div class="bg-white rounded-lg shadow-xl w-[400px]">
         <SettingsPanel @close="showSettings = false" />
@@ -65,23 +119,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useCookieStore } from '@/stores/cookieStore'
 import { useClipboardStore } from '@/stores/clipboardStore'
 import { useSettingStore } from '@/stores/settingStore'
+import { useLocalStorageStore } from '@/stores/localStorageStore'
+import { useSessionStorageStore } from '@/stores/sessionStorageStore'
 import { cookieManager } from '@/services/cookieManager'
 import { storageService } from '@/services/storageService'
-import type { CookieItem } from '@/types'
+import type { CookieItem, StorageItem } from '@/types'
 import FilterBar from '@/devtools/components/FilterBar.vue'
 import CookieList from '@/devtools/components/CookieList.vue'
 import CookieDetail from '@/devtools/components/CookieDetail.vue'
 import BatchActions from '@/devtools/components/BatchActions.vue'
 import SettingsPanel from '@/devtools/components/SettingsPanel.vue'
+import TabNav from '@/manager/components/TabNav.vue'
+import StorageList from '@/devtools/components/StorageList.vue'
+import StorageDetail from '@/devtools/components/StorageDetail.vue'
 
 const cookieStore = useCookieStore()
 const clipboardStore = useClipboardStore()
 const settingStore = useSettingStore()
+const localStorageStore = useLocalStorageStore()
+const sessionStorageStore = useSessionStorageStore()
 
+const activeTab = ref<'cookies' | 'local' | 'session'>('cookies')
 const selectedCookies = ref<Set<CookieItem>>(new Set())
 const editingCookie = ref<CookieItem | undefined>(undefined)
 const showDetailModal = ref(false)
@@ -93,11 +155,30 @@ const keywordFilter = ref('')
 const attributeFilter = ref('')
 const domainFilter = ref('')
 
+const selectedLocalStorageItems = ref<Set<StorageItem>>(new Set())
+const selectedSessionStorageItems = ref<Set<StorageItem>>(new Set())
+const editingStorageItem = ref<StorageItem | undefined>(undefined)
+const showStorageDetail = ref(false)
+const showNewStorageModal = ref(false)
+const currentStorageType = ref<'local' | 'session'>('local')
+
 const currentDomain = computed(() => cookieStore.currentDomain || 'example.com')
 
 const messageClass = computed(() =>
   messageType.value === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
 )
+
+const newButtonLabel = computed(() => {
+  if (activeTab.value === 'cookies') return 'New Cookie'
+  if (activeTab.value === 'local') return 'New Item'
+  return 'New Item'
+})
+
+const tabCounts = computed(() => ({
+  cookies: cookieStore.cookies.length,
+  local: localStorageStore.items.length,
+  session: sessionStorageStore.items.length
+}))
 
 const filteredCookies = computed(() => {
   let result = cookieStore.cookies
@@ -144,6 +225,27 @@ function handleKeywordUpdate(kw: string) { keywordFilter.value = kw }
 function handleAttributeUpdate(attr: string) { attributeFilter.value = attr }
 function clearDomainFilter() { domainFilter.value = '' }
 
+function handleNew() {
+  if (activeTab.value === 'cookies') {
+    showNewModal.value = true
+  } else {
+    currentStorageType.value = activeTab.value as 'local' | 'session'
+    showNewStorageModal.value = true
+  }
+}
+
+async function handleRefresh() {
+  if (activeTab.value === 'cookies') {
+    await loadAllCookies()
+  } else if (activeTab.value === 'local') {
+    const tabId = localStorageStore.currentTabId
+    if (tabId) await localStorageStore.loadItems(tabId, localStorageStore.currentDomain)
+  } else {
+    const tabId = sessionStorageStore.currentTabId
+    if (tabId) await sessionStorageStore.loadItems(tabId, sessionStorageStore.currentDomain)
+  }
+}
+
 function handleEdit(cookie: CookieItem) {
   editingCookie.value = cookie
   showDetailModal.value = true
@@ -175,6 +277,45 @@ async function handleSave(cookie: CookieItem) {
     showMessage('Cookie saved')
   } catch {
     showMessage('Failed to save cookie', 'error')
+  }
+}
+
+function handleStorageEdit(type: 'local' | 'session', item: StorageItem) {
+  currentStorageType.value = type
+  editingStorageItem.value = item
+  showStorageDetail.value = true
+}
+
+async function handleStorageDelete(type: 'local' | 'session', item: StorageItem) {
+  try {
+    if (type === 'local') {
+      await localStorageStore.removeItem(item.key)
+    } else {
+      await sessionStorageStore.removeItem(item.key)
+    }
+    showMessage('Item deleted')
+  } catch {
+    showMessage('Failed to delete item', 'error')
+  }
+}
+
+function closeStorageDetail() {
+  showStorageDetail.value = false
+  editingStorageItem.value = undefined
+}
+
+async function handleStorageSave(item: StorageItem) {
+  try {
+    if (currentStorageType.value === 'local') {
+      await localStorageStore.setItem(item.key, item.value)
+    } else {
+      await sessionStorageStore.setItem(item.key, item.value)
+    }
+    closeStorageDetail()
+    showNewStorageModal.value = false
+    showMessage('Item saved')
+  } catch {
+    showMessage('Failed to save item', 'error')
   }
 }
 
@@ -238,6 +379,64 @@ async function handleBatchExport() {
   }
 }
 
+async function handleStorageSingleCopy(_type: 'local' | 'session', item: StorageItem) {
+  try {
+    await navigator.clipboard.writeText(`${item.key}=${item.value}`)
+    showMessage('Copied to clipboard')
+  } catch {
+    showMessage('Failed to copy item', 'error')
+  }
+}
+
+async function handleStorageBatchCopy(type: 'local' | 'session') {
+  try {
+    const items = Array.from(type === 'local' ? selectedLocalStorageItems.value : selectedSessionStorageItems.value)
+    const text = items.map(i => `${i.key}=${i.value}`).join('\n')
+    await navigator.clipboard.writeText(text)
+    showMessage(`Copied ${items.length} items`)
+    if (type === 'local') selectedLocalStorageItems.value = new Set()
+    else selectedSessionStorageItems.value = new Set()
+  } catch {
+    showMessage('Failed to copy items', 'error')
+  }
+}
+
+async function handleStorageBatchDelete(type: 'local' | 'session') {
+  try {
+    const items = Array.from(type === 'local' ? selectedLocalStorageItems.value : selectedSessionStorageItems.value)
+    const keys = items.map(i => i.key)
+    if (type === 'local') {
+      await localStorageStore.removeItems(keys)
+    } else {
+      await sessionStorageStore.removeItems(keys)
+    }
+    showMessage(`Deleted ${items.length} items`)
+    if (type === 'local') selectedLocalStorageItems.value = new Set()
+    else selectedSessionStorageItems.value = new Set()
+  } catch {
+    showMessage('Failed to delete items', 'error')
+  }
+}
+
+async function handleStorageBatchExport(type: 'local' | 'session') {
+  try {
+    const items = Array.from(type === 'local' ? selectedLocalStorageItems.value : selectedSessionStorageItems.value)
+    const json = JSON.stringify(items, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${type}-storage-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    showMessage('Items exported')
+    if (type === 'local') selectedLocalStorageItems.value = new Set()
+    else selectedSessionStorageItems.value = new Set()
+  } catch {
+    showMessage('Failed to export items', 'error')
+  }
+}
+
 async function loadAllCookies() {
   try {
     const allCookies = await cookieManager.getCookies({})
@@ -246,6 +445,27 @@ async function loadAllCookies() {
     showMessage('Failed to load cookies', 'error')
   }
 }
+
+async function loadStorageForDomain(tabId: number | null, domain: string) {
+  if (!tabId) return
+  await Promise.all([
+    localStorageStore.loadItems(tabId, domain),
+    sessionStorageStore.loadItems(tabId, domain)
+  ])
+}
+
+watch(activeTab, async (newTab) => {
+  if ((newTab === 'local' || newTab === 'session') && domainFilter.value) {
+    const tabId = localStorageStore.currentTabId || sessionStorageStore.currentTabId
+    if (!tabId) {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+      const currentTab = tabs[0]
+      if (currentTab?.id) {
+        await loadStorageForDomain(currentTab.id, domainFilter.value)
+      }
+    }
+  }
+})
 
 async function init() {
   await settingStore.load()
@@ -256,12 +476,19 @@ async function init() {
   
   const urlParams = new URLSearchParams(window.location.search)
   const domain = urlParams.get('domain')
+  const tabIdStr = urlParams.get('tabId')
+  
   if (domain) {
     cookieStore.currentDomain = domain
     domainFilter.value = domain
   }
   
   await loadAllCookies()
+  
+  if (tabIdStr && domain) {
+    const tabId = parseInt(tabIdStr, 10)
+    await loadStorageForDomain(tabId, domain)
+  }
 }
 
 onMounted(init)
