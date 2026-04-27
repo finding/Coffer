@@ -42,3 +42,15 @@ export interface MessageResponse<T = unknown> {
   data?: T
   error?: string
 }
+
+export interface StorageItem {
+  key: string
+  value: string
+}
+
+export interface StorageClipboardItem {
+  items: StorageItem[]
+  sourceDomain: string
+  storageType: 'local' | 'session'
+  copiedAt: number
+}
