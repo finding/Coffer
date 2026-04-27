@@ -11,6 +11,13 @@
       @import="handleImport"
       @export="handleExport"
     />
+    <button
+      @click="openManager"
+      class="w-full mt-4 py-2 px-4 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
+    >
+      <span>🔧</span>
+      <span>Open Cookie Manager</span>
+    </button>
     <div v-if="message" :class="['mt-4 p-2 rounded text-sm', messageClass]">
       {{ message }}
     </div>
@@ -124,6 +131,10 @@ async function handleExport() {
   a.click()
   URL.revokeObjectURL(url)
   showMessage('Cookies exported')
+}
+
+function openManager() {
+  chrome.tabs.create({ url: chrome.runtime.getURL('src/manager/index.html') })
 }
 
 onMounted(init)
