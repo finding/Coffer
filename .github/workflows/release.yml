@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP archive
+        run: |
+          cd dist
+          zip -r ../coffer-${{ steps.get_version.outputs.VERSION }}.zip .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Coffer v${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## Coffer v${{ steps.get_version.outputs.VERSION }}
+            
+            ### 安装方法
+            1. 下载 `coffer-${{ steps.get_version.outputs.VERSION }}.zip`
+            2. 解压 ZIP 文件
+            3. 打开 Chrome，访问 `chrome://extensions/`
+            4. 在右上角启用"开发者模式"
+            5. 点击"加载已解压的扩展程序"，选择解压后的文件夹
+            
+            ### Installation
+            1. Download `coffer-${{ steps.get_version.outputs.VERSION }}.zip`
+            2. Unzip the file
+            3. Open Chrome and go to `chrome://extensions/`
+            4. Enable "Developer mode" in the top right
+            5. Click "Load unpacked" and select the unzipped folder
+            
+            ---
+            
+            ⚠️ **安全警告 / Security Warning**
+            
+            请勿将导出的 Cookie/Storage 数据分享给他人，这可能导致账号被盗。
+            Do not share exported Cookie/Storage data with others - this may lead to account compromise.
+            
+          files: |
+            coffer-${{ steps.get_version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,10 +1,16 @@
 <template>
   <div class="w-80 p-4 bg-gray-50 min-h-[400px]">
-    <StatusCard :domain="currentDomain" :count="cookieCount" />
+    <StatusCard 
+      :domain="currentDomain" 
+      :cookie-count="cookieCount"
+      :local-storage-count="localStorageCount"
+      :session-storage-count="sessionStorageCount"
+    />
     <QuickActions
       :loading="loading"
-      :has-clipboard="hasClipboardItems"
-      :count="cookieCount"
+      :count="currentCount"
+      :mode="currentMode"
+      @update:mode="currentMode = $event"
       @copy="handleCopy"
       @paste="handlePaste"
       @delete="handleDelete"
@@ -16,7 +22,7 @@
       class="w-full mt-4 py-2 px-4 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
     >
       <span>🔧</span>
-      <span>Open Cookie Manager</span>
+      <span>Open Manager</span>
     </button>
     <div v-if="message" :class="['mt-4 p-2 rounded text-sm', messageClass]">
       {{ message }}
@@ -29,23 +35,36 @@ import { ref, computed, onMounted } from 'vue'
 import { useCookieStore } from '@/stores/cookieStore'
 import { useClipboardStore } from '@/stores/clipboardStore'
 import { useSettingStore } from '@/stores/settingStore'
+import { useLocalStorageStore } from '@/stores/localStorageStore'
+import { useSessionStorageStore } from '@/stores/sessionStorageStore'
 import { cookieManager } from '@/services/cookieManager'
 import { storageService } from '@/services/storageService'
-import type { CookieItem } from '@/types'
+import type { CookieItem, StorageItem } from '@/types'
 import StatusCard from './components/StatusCard.vue'
 import QuickActions from './components/QuickActions.vue'
 
 const cookieStore = useCookieStore()
 const clipboardStore = useClipboardStore()
 const settingStore = useSettingStore()
+const localStorageStore = useLocalStorageStore()
+const sessionStorageStore = useSessionStorageStore()
 
 const loading = ref(false)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
+const currentTabId = ref<number | null>(null)
+const currentMode = ref<'cookies' | 'local' | 'session'>('cookies')
 
 const currentDomain = computed(() => cookieStore.currentDomain)
 const cookieCount = computed(() => cookieStore.cookieCount)
-const hasClipboardItems = computed(() => clipboardStore.itemCount > 0)
+const localStorageCount = computed(() => localStorageStore.items.length)
+const sessionStorageCount = computed(() => sessionStorageStore.items.length)
+
+const currentCount = computed(() => {
+  if (currentMode.value === 'cookies') return cookieCount.value
+  if (currentMode.value === 'local') return localStorageCount.value
+  return sessionStorageCount.value
+})
 
 const messageClass = computed(() =>
   messageType.value === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -61,9 +80,12 @@ async function init() {
   loading.value = true
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (tab?.url) {
+    if (tab?.url && tab?.id) {
+      currentTabId.value = tab.id
       const url = new URL(tab.url)
       await cookieStore.loadCookies(url.hostname)
+      await localStorageStore.loadItems(tab.id, url.hostname)
+      await sessionStorageStore.loadItems(tab.id, url.hostname)
     }
     await settingStore.load()
     
@@ -79,56 +101,95 @@ async function init() {
 async function handleCopy() {
   loading.value = true
   try {
-    await clipboardStore.copyCookies(cookieStore.cookies, cookieStore.currentDomain)
-    await chrome.runtime.sendMessage({ 
-      action: 'setClipboard', 
-      data: clipboardStore.items 
-    })
-    showMessage(`Copied ${cookieStore.cookieCount} cookies`)
-  } catch { showMessage('Failed to copy cookies', 'error') }
+    if (currentMode.value === 'cookies') {
+      await clipboardStore.copyCookies(cookieStore.cookies, cookieStore.currentDomain)
+      await chrome.runtime.sendMessage({ 
+        action: 'setClipboard', 
+        data: clipboardStore.items 
+      })
+      showMessage(`Copied ${cookieStore.cookieCount} cookies`)
+    } else {
+      const store = currentMode.value === 'local' ? localStorageStore : sessionStorageStore
+      await chrome.runtime.sendMessage({ 
+        action: 'setStorageClipboard', 
+        storageType: currentMode.value,
+        data: store.items 
+      })
+      showMessage(`Copied ${store.items.length} items`)
+    }
+  } catch { showMessage('Failed to copy', 'error') }
   finally { loading.value = false }
 }
 
 async function handlePaste() {
   loading.value = true
   try {
-    let cookies: CookieItem[] | null = null
-    
-    // First try clipboardStore (from manager copy)
-    cookies = await clipboardStore.pasteCookies(cookieStore.currentDomain)
-    
-    // If no cookies in clipboardStore, try system clipboard (JSON format)
-    if (!cookies) {
-      try {
-        const clipboardText = await navigator.clipboard.readText()
-        if (clipboardText) {
-          const parsed = JSON.parse(clipboardText)
-          if (Array.isArray(parsed)) {
-            cookies = parsed
-          } else if (parsed.name && parsed.value) {
-            cookies = [parsed]
+    if (currentMode.value === 'cookies') {
+      let cookies: CookieItem[] | null = null
+      cookies = await clipboardStore.pasteCookies(cookieStore.currentDomain)
+      
+      if (!cookies) {
+        try {
+          const clipboardText = await navigator.clipboard.readText()
+          if (clipboardText) {
+            const parsed = JSON.parse(clipboardText)
+            if (Array.isArray(parsed)) {
+              cookies = parsed
+            } else if (parsed.name && parsed.value) {
+              cookies = [parsed]
+            }
           }
+        } catch {}
+      }
+      
+      if (!cookies) { 
+        showMessage('No cookies to paste', 'error')
+        return
+      }
+      
+      const domain = cookieStore.currentDomain.replace(/^\./, '')
+      for (const c of cookies) {
+        if (!c.domain || c.domain === 'example.com') {
+          c.domain = domain.startsWith('.') ? domain : '.' + domain
         }
-      } catch {
-        // Not valid JSON or clipboard read failed
       }
-    }
-    
-    if (!cookies) { 
-      showMessage('No cookies to paste', 'error')
-      return
-    }
-    
-    const domain = cookieStore.currentDomain.replace(/^\./, '')
-    for (const c of cookies) {
-      if (!c.domain || c.domain === 'example.com') {
-        c.domain = domain.startsWith('.') ? domain : '.' + domain
+      
+      await cookieManager.setCookies(cookies, `https://${domain}`)
+      await cookieStore.loadCookies(cookieStore.currentDomain)
+      showMessage(`Pasted ${cookies.length} cookies`)
+    } else {
+      if (!currentTabId.value) {
+        showMessage('No active tab', 'error')
+        return
       }
+      
+      const response = await chrome.runtime.sendMessage({ 
+        action: 'getStorageClipboard', 
+        storageType: currentMode.value 
+      })
+      
+      let items: StorageItem[] = response?.data || []
+      
+      if (items.length === 0) {
+        try {
+          const clipboardText = await navigator.clipboard.readText()
+          if (clipboardText) {
+            const parsed = JSON.parse(clipboardText)
+            items = Array.isArray(parsed) ? parsed : [parsed]
+          }
+        } catch {}
+      }
+      
+      if (items.length === 0) {
+        showMessage('No items to paste', 'error')
+        return
+      }
+      
+      const store = currentMode.value === 'local' ? localStorageStore : sessionStorageStore
+      await store.setItems(items)
+      await store.loadItems(currentTabId.value, currentDomain.value)
+      showMessage(`Pasted ${items.length} items`)
     }
-    
-    await cookieManager.setCookies(cookies, `https://${domain}`)
-    await cookieStore.loadCookies(cookieStore.currentDomain)
-    showMessage(`Pasted ${cookies.length} cookies`)
   } catch (err) {
     console.error('Paste error:', err)
     showMessage(`Failed to paste: ${err}`, 'error')
@@ -139,9 +200,21 @@ async function handlePaste() {
 async function handleDelete() {
   loading.value = true
   try {
-    await cookieStore.deleteAllCookies()
-    showMessage('All cookies deleted')
-  } catch { showMessage('Failed to delete cookies', 'error') }
+    if (currentMode.value === 'cookies') {
+      await cookieStore.deleteAllCookies()
+      showMessage('All cookies deleted')
+    } else {
+      if (!currentTabId.value) {
+        showMessage('No active tab', 'error')
+        return
+      }
+      
+      const store = currentMode.value === 'local' ? localStorageStore : sessionStorageStore
+      const keys = store.items.map(item => item.key)
+      await store.removeItems(keys)
+      showMessage('All items deleted')
+    }
+  } catch { showMessage('Failed to delete', 'error') }
   finally { loading.value = false }
 }
 
@@ -155,36 +228,62 @@ function handleImport() {
     loading.value = true
     try {
       const text = await file.text()
-      const cookies = await storageService.importCookies(text)
-      await cookieManager.setCookies(cookies, `https://${cookieStore.currentDomain}`)
-      await cookieStore.loadCookies(cookieStore.currentDomain)
-      showMessage(`Imported ${cookies.length} cookies`)
-    } catch { showMessage('Failed to import cookies', 'error') }
+      
+      if (currentMode.value === 'cookies') {
+        const cookies = await storageService.importCookies(text)
+        await cookieManager.setCookies(cookies, `https://${cookieStore.currentDomain}`)
+        await cookieStore.loadCookies(cookieStore.currentDomain)
+        showMessage(`Imported ${cookies.length} cookies`)
+      } else {
+        const items: StorageItem[] = JSON.parse(text)
+        if (!currentTabId.value) {
+          showMessage('No active tab', 'error')
+          return
+        }
+        const store = currentMode.value === 'local' ? localStorageStore : sessionStorageStore
+        await store.setItems(Array.isArray(items) ? items : [items])
+        await store.loadItems(currentTabId.value, currentDomain.value)
+        const count = Array.isArray(items) ? items.length : 1
+        showMessage(`Imported ${count} items`)
+      }
+    } catch { showMessage('Failed to import', 'error') }
     finally { loading.value = false }
   }
   input.click()
 }
 
 async function handleExport() {
-  const json = await storageService.exportCookies(cookieStore.cookies)
-  const blob = new Blob([json], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `cookies-${cookieStore.currentDomain}-${Date.now()}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-  showMessage('Cookies exported')
+  try {
+    let json: string
+    let filename: string
+    
+    if (currentMode.value === 'cookies') {
+      json = await storageService.exportCookies(cookieStore.cookies)
+      filename = `cookies-${cookieStore.currentDomain}-${Date.now()}.json`
+    } else {
+      const store = currentMode.value === 'local' ? localStorageStore : sessionStorageStore
+      json = JSON.stringify(store.items, null, 2)
+      filename = `${currentMode.value}-storage-${currentDomain.value}-${Date.now()}.json`
+    }
+    
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+    showMessage('Exported')
+  } catch { showMessage('Failed to export', 'error') }
 }
 
 async function openManager() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
   const url = chrome.runtime.getURL('src/manager/index.html')
   const params = new URLSearchParams({ 
     domain: cookieStore.currentDomain
   })
-  if (tab?.id) {
-    params.set('tabId', String(tab.id))
+  if (currentTabId.value) {
+    params.set('tabId', String(currentTabId.value))
   }
   chrome.tabs.create({ url: `${url}?${params.toString()}` })
 }

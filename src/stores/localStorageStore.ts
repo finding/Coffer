@@ -24,8 +24,11 @@ export const useLocalStorageStore = defineStore('localStorage', () => {
     currentTabId.value = tabId
     currentDomain.value = domain
     try {
+      console.log('[LocalStorageStore] Getting storage for tabId:', tabId)
       items.value = await storageDataManager.getStorage(tabId, 'local')
+      console.log('[LocalStorageStore] Got items:', items.value.length, items.value)
     } catch (e) {
+      console.error('[LocalStorageStore] Error:', e)
       error.value = e instanceof Error ? e.message : 'Failed to load localStorage'
     } finally {
       loading.value = false

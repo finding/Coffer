@@ -15,7 +15,7 @@
           <td class="p-2"><input type="checkbox" :checked="selected.has(item)" @change="toggleSelect(item)" /></td>
           <td class="p-2">
             <div 
-              @click="copyToClipboard(item.key)"
+              @click="copyToClipboard(item)"
               class="group flex items-center gap-1 cursor-pointer"
               :title="item.key"
             >
@@ -27,7 +27,7 @@
           </td>
           <td class="p-2">
             <div 
-              @click="copyToClipboard(item.value)"
+              @click="copyToClipboard(item)"
               class="group flex items-center gap-1 cursor-pointer"
               :title="item.value"
             >
@@ -92,9 +92,11 @@ function toggleSelect(item: StorageItem) {
   emit('update:selected', newSelected)
 }
 
-async function copyToClipboard(text: string) {
+async function copyToClipboard(item: StorageItem) {
   try {
-    await navigator.clipboard.writeText(text)
+    const json = JSON.stringify([item], null, 2)
+    await navigator.clipboard.writeText(json)
+    emit('copy', item)
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
   } catch (err) {

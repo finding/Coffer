@@ -1,7 +1,7 @@
 <template>
   <div class="h-screen flex flex-col bg-gray-100">
     <header class="bg-white border-b px-4 py-3 flex items-center justify-between">
-      <h1 class="text-lg font-semibold">Cookie Manager DevTools</h1>
+      <h1 class="text-lg font-semibold">Coffer DevTools</h1>
       <div class="flex gap-2">
         <button @click="showNewModal = true" class="px-3 py-1.5 bg-chrome-blue text-white rounded-lg hover:bg-blue-600 text-sm">New Cookie</button>
         <button @click="showSettings = true" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Settings</button>

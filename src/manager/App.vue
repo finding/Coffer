@@ -2,7 +2,7 @@
   <div class="h-screen flex flex-col bg-gray-100">
     <header class="bg-white border-b px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <h1 class="text-lg font-semibold">Cookie Manager</h1>
+        <h1 class="text-lg font-semibold">Coffer</h1>
         <span class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
           {{ domainFilter || 'All domains' }}
         </span>
@@ -112,7 +112,7 @@
       </div>
     </div>
 
-    <div v-if="message" :class="['fixed bottom-4 right-4 p-3 rounded-lg shadow-lg text-sm', messageClass]">
+    <div v-if="message" :class="['fixed bottom-4 left-1/2 -translate-x-1/2 p-3 rounded-lg shadow-lg text-sm', messageClass]">
       {{ message }}
     </div>
   </div>
@@ -379,20 +379,28 @@ async function handleBatchExport() {
   }
 }
 
-async function handleStorageSingleCopy(_type: 'local' | 'session', item: StorageItem) {
+async function handleStorageSingleCopy(type: 'local' | 'session', item: StorageItem) {
   try {
-    await navigator.clipboard.writeText(`${item.key}=${item.value}`)
-    showMessage('Copied to clipboard')
+    await chrome.runtime.sendMessage({ 
+      action: 'setStorageClipboard', 
+      storageType: type,
+      data: [item] 
+    })
   } catch {
-    showMessage('Failed to copy item', 'error')
+    console.error('Failed to save to storage clipboard')
   }
 }
 
 async function handleStorageBatchCopy(type: 'local' | 'session') {
   try {
     const items = Array.from(type === 'local' ? selectedLocalStorageItems.value : selectedSessionStorageItems.value)
-    const text = items.map(i => `${i.key}=${i.value}`).join('\n')
-    await navigator.clipboard.writeText(text)
+    await chrome.runtime.sendMessage({ 
+      action: 'setStorageClipboard', 
+      storageType: type,
+      data: items 
+    })
+    const json = JSON.stringify(items, null, 2)
+    await navigator.clipboard.writeText(json)
     showMessage(`Copied ${items.length} items`)
     if (type === 'local') selectedLocalStorageItems.value = new Set()
     else selectedSessionStorageItems.value = new Set()
@@ -447,11 +455,21 @@ async function loadAllCookies() {
 }
 
 async function loadStorageForDomain(tabId: number | null, domain: string) {
-  if (!tabId) return
-  await Promise.all([
-    localStorageStore.loadItems(tabId, domain),
-    sessionStorageStore.loadItems(tabId, domain)
-  ])
+  if (!tabId) {
+    console.log('[Manager] No tabId provided')
+    return
+  }
+  console.log('[Manager] Loading storage for tabId:', tabId, 'domain:', domain)
+  try {
+    await Promise.all([
+      localStorageStore.loadItems(tabId, domain),
+      sessionStorageStore.loadItems(tabId, domain)
+    ])
+    console.log('[Manager] localStorage items:', localStorageStore.items.length)
+    console.log('[Manager] sessionStorage items:', sessionStorageStore.items.length)
+  } catch (e) {
+    console.error('[Manager] Error loading storage:', e)
+  }
 }
 
 watch(activeTab, async (newTab) => {
@@ -475,6 +493,9 @@ async function init() {
   const domain = urlParams.get('domain')
   const tabIdStr = urlParams.get('tabId')
   
+  console.log('[Manager] URL params:', { domain, tabIdStr })
+  console.log('[Manager] Full URL:', window.location.href)
+  
   if (domain) {
     cookieStore.currentDomain = domain
     domainFilter.value = domain
@@ -488,17 +509,22 @@ async function init() {
     const parsed = parseInt(tabIdStr, 10)
     if (!isNaN(parsed)) {
       tabId = parsed
+      console.log('[Manager] Parsed tabId:', tabId)
     }
   }
   
   if (!tabId && domain) {
+    console.log('[Manager] No tabId, searching tabs for domain:', domain)
     const tabs = await chrome.tabs.query({})
+    console.log('[Manager] Found tabs:', tabs.length)
     for (const tab of tabs) {
       if (tab.url && tab.id) {
         try {
           const tabUrl = new URL(tab.url)
+          console.log('[Manager] Checking tab:', tab.id, tabUrl.hostname)
           if (tabUrl.hostname === domain || tabUrl.hostname.endsWith('.' + domain) || domain.endsWith('.' + tabUrl.hostname)) {
             tabId = tab.id
+            console.log('[Manager] Matched tab:', tabId)
             break
           }
         } catch {}
@@ -506,8 +532,12 @@ async function init() {
     }
   }
   
+  console.log('[Manager] Final tabId:', tabId, 'domain:', domain)
+  
   if (tabId && domain) {
     await loadStorageForDomain(tabId, domain)
+  } else {
+    console.log('[Manager] Skipping storage load - missing tabId or domain')
   }
 }
 

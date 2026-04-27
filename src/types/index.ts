@@ -33,8 +33,14 @@ export interface Settings {
 export type CookieAttribute = 'secure' | 'httpOnly' | 'session'
 
 export interface MessagePayload {
-  action: 'getClipboard' | 'setClipboard' | 'getSettings' | 'setSettings'
+  action: 'getClipboard' | 'setClipboard' | 'getSettings' | 'setSettings' | 'getStorage' | 'setStorageItem' | 'removeStorageItem' | 'setStorageItems' | 'removeStorageItems' | 'getStorageClipboard' | 'setStorageClipboard'
   data?: unknown
+  tabId?: number
+  storageType?: 'local' | 'session'
+  key?: string
+  value?: string
+  items?: { key: string; value: string }[]
+  keys?: string[]
 }
 
 export interface MessageResponse<T = unknown> {

@@ -1,76 +1,58 @@
-import type { StorageItem } from '@/types'
+import type { StorageItem, MessageResponse } from '@/types'
 
 export class StorageDataManager {
   async getStorage(tabId: number, type: 'local' | 'session'): Promise<StorageItem[]> {
+    console.log('[StorageDataManager] getStorage called:', { tabId, type })
     try {
-      const result = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: (storageType: string) => {
-          try {
-            const storage = storageType === 'local' ? localStorage : sessionStorage
-            const items: { key: string; value: string }[] = []
-            for (let i = 0; i < storage.length; i++) {
-              const key = storage.key(i)
-              if (key) {
-                items.push({ key, value: storage.getItem(key) || '' })
-              }
-            }
-            return items
-          } catch (e) {
-            console.error('Error in content script:', e)
-            return []
-          }
-        },
-        args: [type]
-      })
-      return result?.[0]?.result || []
+      const message = {
+        action: 'getStorage',
+        tabId,
+        storageType: type
+      }
+      console.log('[StorageDataManager] Sending message:', message)
+      const response = await chrome.runtime.sendMessage(message) as MessageResponse<StorageItem[]>
+      console.log('[StorageDataManager] Response:', response)
+      return response?.data || []
     } catch (e) {
-      console.error('Error executing script:', e)
+      console.error('[StorageDataManager] Error:', e)
       return []
     }
   }
 
   async setItem(tabId: number, type: 'local' | 'session', key: string, value: string): Promise<void> {
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (storageType: string, k: string, v: string) => {
-        const storage = storageType === 'local' ? localStorage : sessionStorage
-        storage.setItem(k, v)
-      },
-      args: [type, key, value]
+    await chrome.runtime.sendMessage({
+      action: 'setStorageItem',
+      tabId,
+      storageType: type,
+      key,
+      value
     })
   }
 
   async removeItem(tabId: number, type: 'local' | 'session', key: string): Promise<void> {
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (storageType: string, k: string) => {
-        const storage = storageType === 'local' ? localStorage : sessionStorage
-        storage.removeItem(k)
-      },
-      args: [type, key]
+    await chrome.runtime.sendMessage({
+      action: 'removeStorageItem',
+      tabId,
+      storageType: type,
+      key
     })
   }
 
   async setItems(tabId: number, type: 'local' | 'session', items: StorageItem[]): Promise<void> {
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (storageType: string, data: { key: string; value: string }[]) => {
-        const storage = storageType === 'local' ? localStorage : sessionStorage
-        data.forEach(item => storage.setItem(item.key, item.value))
-      },
-      args: [type, items]
+    await chrome.runtime.sendMessage({
+      action: 'setStorageItems',
+      tabId,
+      storageType: type,
+      items
     })
   }
 
   async removeItems(tabId: number, type: 'local' | 'session', keys: string[]): Promise<void> {
-    await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (storageType: string, ks: string[]) => {
-        const storage = storageType === 'local' ? localStorage : sessionStorage
-        ks.forEach(k => storage.removeItem(k))
-      },
-      args: [type, keys]
+    await chrome.runtime.sendMessage({
+      action: 'removeStorageItems',
+      tabId,
+      storageType: type,
+      keys
     })
   }
 

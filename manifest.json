@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Cookie Manager",
+  "name": "Coffer",
   "version": "1.0.0",
-  "description": "Manage cookies with copy/paste across tabs and incognito mode",
-  "permissions": ["cookies", "storage", "activeTab", "tabs", "scripting"],
+  "description": "A secure vault for your cookies and storage - manage, copy, paste across tabs and incognito mode",
+  "permissions": ["cookies", "storage", "activeTab", "tabs", "scripting", "clipboardRead", "clipboardWrite"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "src/popup/index.html",
