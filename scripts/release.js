@@ -45,8 +45,8 @@ try {
   execSync('git add package.json manifest.json', { cwd: rootDir, stdio: 'inherit' })
   execSync(`git commit -m "chore: release v${version}"`, { cwd: rootDir, stdio: 'inherit' })
 } catch (e) {
-  console.error('Error committing changes')
-  process.exit(1)
+  // Version unchanged, nothing to commit
+  console.log('ℹ️  No changes to commit (version unchanged)')
 }
 
 // Create tag
