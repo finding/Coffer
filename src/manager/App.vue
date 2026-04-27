@@ -231,19 +231,11 @@ async function init() {
     clipboardStore.items = response.data
   }
   
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (tab?.url) {
-      try {
-        const url = new URL(tab.url)
-        cookieStore.currentDomain = url.hostname
-        domainFilter.value = url.hostname
-      } catch {
-        // Invalid URL
-      }
-    }
-  } catch {
-    // Cannot access tabs
+  const urlParams = new URLSearchParams(window.location.search)
+  const domain = urlParams.get('domain')
+  if (domain) {
+    cookieStore.currentDomain = domain
+    domainFilter.value = domain
   }
   
   await loadAllCookies()

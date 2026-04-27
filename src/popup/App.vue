@@ -150,7 +150,9 @@ async function handleExport() {
 }
 
 function openManager() {
-  chrome.tabs.create({ url: chrome.runtime.getURL('src/manager/index.html') })
+  const url = chrome.runtime.getURL('src/manager/index.html')
+  const params = new URLSearchParams({ domain: cookieStore.currentDomain })
+  chrome.tabs.create({ url: `${url}?${params.toString()}` })
 }
 
 onMounted(init)
