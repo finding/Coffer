@@ -104,8 +104,18 @@ const filteredCookies = computed(() => {
   if (domainFilter.value) {
     const df = domainFilter.value.toLowerCase().replace(/^\./, '')
     result = result.filter(c => {
-      const cookieDomain = c.domain.toLowerCase().replace(/^\./, '')
-      return cookieDomain === df || cookieDomain.endsWith('.' + df) || df.endsWith('.' + cookieDomain) || cookieDomain.includes(df)
+      const cd = c.domain.toLowerCase().replace(/^\./, '')
+      if (cd === df) return true
+      if (cd.endsWith('.' + df)) return true
+      if (df.endsWith('.' + cd)) return true
+      const dfParts = df.split('.')
+      const cdParts = cd.split('.')
+      if (dfParts.length >= 2 && cdParts.length >= 2) {
+        const dfRoot = dfParts.slice(-2).join('.')
+        const cdRoot = cdParts.slice(-2).join('.')
+        if (dfRoot === cdRoot) return true
+      }
+      return false
     })
   }
   if (keywordFilter.value) {
