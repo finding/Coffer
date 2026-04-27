@@ -476,7 +476,7 @@ async function init() {
   
   const urlParams = new URLSearchParams(window.location.search)
   const domain = urlParams.get('domain')
-  const tabIdStr = urlParams.get('tabId')
+  let tabIdStr = urlParams.get('tabId')
   
   if (domain) {
     cookieStore.currentDomain = domain
@@ -485,8 +485,18 @@ async function init() {
   
   await loadAllCookies()
   
-  if (tabIdStr && domain) {
-    const tabId = parseInt(tabIdStr, 10)
+  let tabId: number | null = null
+  
+  if (tabIdStr) {
+    tabId = parseInt(tabIdStr, 10)
+  } else if (domain) {
+    const tabs = await chrome.tabs.query({ url: `*://${domain}/*` })
+    if (tabs.length > 0 && tabs[0].id) {
+      tabId = tabs[0].id
+    }
+  }
+  
+  if (tabId && domain) {
     await loadStorageForDomain(tabId, domain)
   }
 }
