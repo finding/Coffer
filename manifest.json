@@ -3,8 +3,18 @@
   "name": "Coffer",
   "version": "1.0.0",
   "description": "A secure vault for your cookies and storage - manage, copy, paste across tabs and incognito mode",
-  "permissions": ["cookies", "storage", "activeTab", "tabs", "scripting", "clipboardRead", "clipboardWrite"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "cookies",
+    "storage",
+    "activeTab",
+    "tabs",
+    "scripting",
+    "clipboardRead",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "action": {
     "default_popup": "src/popup/index.html",
     "default_icon": {
@@ -23,9 +33,18 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "web_accessible_resources": [{
-    "resources": ["src/manager/index.html", "manager.js", "chunks/*", "assets/*"],
-    "matches": ["<all_urls>"]
-  }],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/manager/index.html",
+        "manager.js",
+        "chunks/*",
+        "assets/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
   "incognito": "split"
 }
