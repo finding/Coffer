@@ -65,7 +65,11 @@ async function init() {
       await cookieStore.loadCookies(url.hostname)
     }
     await settingStore.load()
-    await clipboardStore.loadFromStorage()
+    
+    const response = await chrome.runtime.sendMessage({ action: 'getClipboard' })
+    if (response?.success && response?.data) {
+      clipboardStore.items = response.data
+    }
   } finally {
     loading.value = false
   }
@@ -75,6 +79,10 @@ async function handleCopy() {
   loading.value = true
   try {
     await clipboardStore.copyCookies(cookieStore.cookies, cookieStore.currentDomain)
+    await chrome.runtime.sendMessage({ 
+      action: 'setClipboard', 
+      data: clipboardStore.items 
+    })
     showMessage(`Copied ${cookieStore.cookieCount} cookies`)
   } catch { showMessage('Failed to copy cookies', 'error') }
   finally { loading.value = false }

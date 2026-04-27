@@ -156,6 +156,10 @@ async function handleBatchCopy() {
   try {
     const cookies = Array.from(selectedCookies.value)
     await clipboardStore.copyCookies(cookies, currentDomain.value)
+    await chrome.runtime.sendMessage({ 
+      action: 'setClipboard', 
+      data: clipboardStore.items 
+    })
     showMessage(`Copied ${cookies.length} cookies`)
     selectedCookies.value = new Set()
   } catch {
@@ -207,7 +211,10 @@ async function loadAllCookies() {
 
 async function init() {
   await settingStore.load()
-  await clipboardStore.loadFromStorage()
+  const response = await chrome.runtime.sendMessage({ action: 'getClipboard' })
+  if (response?.success && response?.data) {
+    clipboardStore.items = response.data
+  }
   await loadAllCookies()
 }
 
