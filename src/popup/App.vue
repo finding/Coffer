@@ -181,9 +181,11 @@ async function openManager() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
   const url = chrome.runtime.getURL('src/manager/index.html')
   const params = new URLSearchParams({ 
-    domain: cookieStore.currentDomain,
-    tabId: String(tab?.id || '')
+    domain: cookieStore.currentDomain
   })
+  if (tab?.id) {
+    params.set('tabId', String(tab.id))
+  }
   chrome.tabs.create({ url: `${url}?${params.toString()}` })
 }
 

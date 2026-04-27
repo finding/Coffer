@@ -473,7 +473,7 @@ async function init() {
   
   const urlParams = new URLSearchParams(window.location.search)
   const domain = urlParams.get('domain')
-  let tabIdStr = urlParams.get('tabId')
+  const tabIdStr = urlParams.get('tabId')
   
   if (domain) {
     cookieStore.currentDomain = domain
@@ -484,12 +484,25 @@ async function init() {
   
   let tabId: number | null = null
   
-  if (tabIdStr) {
-    tabId = parseInt(tabIdStr, 10)
-  } else if (domain) {
-    const tabs = await chrome.tabs.query({ url: `*://${domain}/*` })
-    if (tabs.length > 0 && tabs[0].id) {
-      tabId = tabs[0].id
+  if (tabIdStr && tabIdStr !== 'null' && tabIdStr !== 'undefined') {
+    const parsed = parseInt(tabIdStr, 10)
+    if (!isNaN(parsed)) {
+      tabId = parsed
+    }
+  }
+  
+  if (!tabId && domain) {
+    const tabs = await chrome.tabs.query({})
+    for (const tab of tabs) {
+      if (tab.url && tab.id) {
+        try {
+          const tabUrl = new URL(tab.url)
+          if (tabUrl.hostname === domain || tabUrl.hostname.endsWith('.' + domain) || domain.endsWith('.' + tabUrl.hostname)) {
+            tabId = tab.id
+            break
+          }
+        } catch {}
+      }
     }
   }
   
