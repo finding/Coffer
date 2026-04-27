@@ -142,7 +142,7 @@ function closeDetailModal() {
 async function handleSave(cookie: CookieItem) {
   try {
     const url = `https://${cookie.domain}${cookie.path}`
-    await cookieManager.setCookie({ ...cookie, url })
+    await cookieManager.setCookie(cookie, url)
     await loadAllCookies()
     closeDetailModal()
     showNewModal.value = false
@@ -198,7 +198,7 @@ async function handleBatchExport() {
 
 async function loadAllCookies() {
   try {
-    const allCookies = await cookieManager.getAllCookies()
+    const allCookies = await cookieManager.getCookies({})
     cookieStore.cookies = allCookies
   } catch {
     showMessage('Failed to load cookies', 'error')

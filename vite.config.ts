@@ -1,9 +1,20 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
+import { copyFileSync, mkdirSync, existsSync, cpSync } from 'fs'
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    {
+      name: 'copy-manifest-and-icons',
+      closeBundle() {
+        copyFileSync('manifest.json', 'dist/manifest.json')
+        if (!existsSync('dist/icons')) mkdirSync('dist/icons', { recursive: true })
+        cpSync('public/icons', 'dist/icons', { recursive: true })
+      }
+    }
+  ],
   build: {
     outDir: 'dist',
     rollupOptions: {

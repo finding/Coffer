@@ -29,7 +29,7 @@
 import { ref, onMounted } from 'vue'
 import { useSettingStore } from '@/stores/settingStore'
 
-const emit = defineEmits<{ close: [] }>()
+defineEmits<{ close: [] }>()
 const settingStore = useSettingStore()
 const persistMode = ref(false)
 const maxItems = ref(10)
