@@ -18,18 +18,28 @@
           class="border-b hover:bg-gray-50" :class="{ 'bg-blue-50': selected.has(c) }">
           <td class="p-2"><input type="checkbox" :checked="selected.has(c)" @change="toggleSelect(c)" /></td>
           <td class="p-2">
-            <span 
+            <div 
               @click="copyToClipboard(c.name)"
-              class="font-mono text-xs truncate max-w-[150px] block cursor-pointer hover:text-chrome-blue hover:underline"
+              class="group flex items-center gap-1 cursor-pointer"
               :title="c.name"
-            >{{ c.name }}</span>
+            >
+              <span class="font-mono text-xs truncate max-w-[130px] group-hover:text-chrome-blue group-hover:underline">{{ c.name }}</span>
+              <svg class="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
           </td>
           <td class="p-2">
-            <span 
+            <div 
               @click="copyToClipboard(c.value)"
-              class="font-mono text-xs truncate max-w-[200px] block cursor-pointer hover:text-chrome-blue hover:underline"
+              class="group flex items-center gap-1 cursor-pointer"
               :title="c.value"
-            >{{ c.value }}</span>
+            >
+              <span class="font-mono text-xs truncate max-w-[180px] group-hover:text-chrome-blue group-hover:underline">{{ c.value }}</span>
+              <svg class="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
           </td>
           <td class="p-2 text-gray-500 text-xs">{{ c.domain }}</td>
           <td class="p-2 text-gray-500 text-xs">{{ c.path }}</td>
@@ -43,9 +53,20 @@
       </tbody>
     </table>
     <div v-if="cookies.length === 0" class="p-8 text-center text-gray-500">No cookies found</div>
-    <div v-if="copied" class="fixed bottom-4 right-4 px-3 py-2 bg-green-100 text-green-800 rounded-lg text-sm shadow">
-      Copied!
-    </div>
+    <Transition
+      enter-active-class="transition-opacity duration-150"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-150"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="copied" class="fixed inset-0 flex items-center justify-center pointer-events-none">
+        <div class="px-4 py-2 bg-green-500 text-white rounded-lg text-sm shadow-lg">
+          Copied!
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
