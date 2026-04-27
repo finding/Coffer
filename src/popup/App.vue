@@ -94,22 +94,24 @@ async function handlePaste() {
   try {
     let cookies: CookieItem[] | null = null
     
-    const clipboardText = await navigator.clipboard.readText()
-    if (clipboardText) {
+    // First try clipboardStore (from manager copy)
+    cookies = await clipboardStore.pasteCookies(cookieStore.currentDomain)
+    
+    // If no cookies in clipboardStore, try system clipboard (JSON format)
+    if (!cookies) {
       try {
-        const parsed = JSON.parse(clipboardText)
-        if (Array.isArray(parsed)) {
-          cookies = parsed
-        } else if (parsed.name && parsed.value) {
-          cookies = [parsed]
+        const clipboardText = await navigator.clipboard.readText()
+        if (clipboardText) {
+          const parsed = JSON.parse(clipboardText)
+          if (Array.isArray(parsed)) {
+            cookies = parsed
+          } else if (parsed.name && parsed.value) {
+            cookies = [parsed]
+          }
         }
       } catch {
-        // Not valid JSON, try clipboardStore
+        // Not valid JSON or clipboard read failed
       }
-    }
-    
-    if (!cookies) {
-      cookies = await clipboardStore.pasteCookies(cookieStore.currentDomain)
     }
     
     if (!cookies) { 

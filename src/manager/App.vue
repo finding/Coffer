@@ -26,6 +26,7 @@
       @update:selected="selectedCookies = $event"
       @edit="handleEdit"
       @delete="handleDelete"
+      @copy="handleSingleCopy"
     />
 
     <BatchActions
@@ -179,6 +180,18 @@ async function handleBatchCopy() {
     selectedCookies.value = new Set()
   } catch {
     showMessage('Failed to copy cookies', 'error')
+  }
+}
+
+async function handleSingleCopy(cookie: CookieItem) {
+  try {
+    await clipboardStore.copyCookies([cookie], cookie.domain)
+    await chrome.runtime.sendMessage({ 
+      action: 'setClipboard', 
+      data: clipboardStore.items 
+    })
+  } catch {
+    showMessage('Failed to copy cookie', 'error')
   }
 }
 

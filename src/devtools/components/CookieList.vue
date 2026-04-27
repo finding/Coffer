@@ -75,7 +75,12 @@ import { ref, computed } from 'vue'
 import type { CookieItem } from '@/types'
 
 const props = defineProps<{ cookies: CookieItem[]; selected: Set<CookieItem> }>()
-const emit = defineEmits<{ 'update:selected': [Set<CookieItem>]; 'edit': [CookieItem]; 'delete': [CookieItem] }>()
+const emit = defineEmits<{ 
+  'update:selected': [Set<CookieItem>]; 
+  'edit': [CookieItem]; 
+  'delete': [CookieItem];
+  'copy': [CookieItem]
+}>()
 
 const copied = ref(false)
 
@@ -99,6 +104,7 @@ async function copyToClipboard(cookie: CookieItem) {
   try {
     const json = JSON.stringify(cookie, null, 2)
     await navigator.clipboard.writeText(json)
+    emit('copy', cookie)
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
   } catch (err) {
