@@ -31,6 +31,7 @@ import { useClipboardStore } from '@/stores/clipboardStore'
 import { useSettingStore } from '@/stores/settingStore'
 import { cookieManager } from '@/services/cookieManager'
 import { storageService } from '@/services/storageService'
+import type { CookieItem } from '@/types'
 import StatusCard from './components/StatusCard.vue'
 import QuickActions from './components/QuickActions.vue'
 
@@ -91,13 +92,38 @@ async function handleCopy() {
 async function handlePaste() {
   loading.value = true
   try {
-    const cookies = await clipboardStore.pasteCookies(cookieStore.currentDomain)
+    let cookies: CookieItem[] | null = null
+    
+    const clipboardText = await navigator.clipboard.readText()
+    if (clipboardText) {
+      try {
+        const parsed = JSON.parse(clipboardText)
+        if (Array.isArray(parsed)) {
+          cookies = parsed
+        } else if (parsed.name && parsed.value) {
+          cookies = [parsed]
+        }
+      } catch {
+        // Not valid JSON, try clipboardStore
+      }
+    }
+    
+    if (!cookies) {
+      cookies = await clipboardStore.pasteCookies(cookieStore.currentDomain)
+    }
+    
     if (!cookies) { 
-      showMessage('No cookies to paste - copy some first', 'error')
+      showMessage('No cookies to paste', 'error')
       return
     }
-    console.log('Pasting cookies:', cookies)
+    
     const domain = cookieStore.currentDomain.replace(/^\./, '')
+    for (const c of cookies) {
+      if (!c.domain || c.domain === 'example.com') {
+        c.domain = domain.startsWith('.') ? domain : '.' + domain
+      }
+    }
+    
     await cookieManager.setCookies(cookies, `https://${domain}`)
     await cookieStore.loadCookies(cookieStore.currentDomain)
     showMessage(`Pasted ${cookies.length} cookies`)

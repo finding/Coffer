@@ -19,7 +19,7 @@
           <td class="p-2"><input type="checkbox" :checked="selected.has(c)" @change="toggleSelect(c)" /></td>
           <td class="p-2">
             <div 
-              @click="copyToClipboard(c.name)"
+              @click="copyToClipboard(c)"
               class="group flex items-center gap-1 cursor-pointer"
               :title="c.name"
             >
@@ -31,7 +31,7 @@
           </td>
           <td class="p-2">
             <div 
-              @click="copyToClipboard(c.value)"
+              @click="copyToClipboard(c)"
               class="group flex items-center gap-1 cursor-pointer"
               :title="c.value"
             >
@@ -95,9 +95,10 @@ function toggleSelect(cookie: CookieItem) {
   emit('update:selected', newSelected)
 }
 
-async function copyToClipboard(text: string) {
+async function copyToClipboard(cookie: CookieItem) {
   try {
-    await navigator.clipboard.writeText(text)
+    const json = JSON.stringify(cookie, null, 2)
+    await navigator.clipboard.writeText(json)
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
   } catch (err) {
