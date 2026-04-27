@@ -101,8 +101,11 @@ const messageClass = computed(() =>
 const filteredCookies = computed(() => {
   let result = cookieStore.cookies
   if (domainFilter.value) {
-    const df = domainFilter.value.toLowerCase()
-    result = result.filter(c => c.domain.toLowerCase().includes(df))
+    const df = domainFilter.value.toLowerCase().replace(/^\./, '')
+    result = result.filter(c => {
+      const cookieDomain = c.domain.toLowerCase().replace(/^\./, '')
+      return cookieDomain === df || cookieDomain.endsWith('.' + df) || df.endsWith('.' + cookieDomain) || cookieDomain.includes(df)
+    })
   }
   if (keywordFilter.value) {
     const kw = keywordFilter.value.toLowerCase()
