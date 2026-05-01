@@ -81,6 +81,15 @@ jobs:
           body: |
             ## Coffer v${{ steps.get_version.outputs.VERSION }}
             
+            ### 更新日志 / Changelog
+            
+            ${{ steps.changelog.outputs.COMMITS }}
+            
+            ${{ steps.changelog.outputs.ISSUES != '' && '### 相关 Issue / Related Issues' || '' }}
+            ${{ steps.changelog.outputs.ISSUES }}
+            
+            ---
+            
             ### 安装方法
             1. 下载 `coffer-${{ steps.get_version.outputs.VERSION }}.zip`
             2. 解压 ZIP 文件
@@ -94,15 +103,6 @@ jobs:
             3. Open Chrome and go to `chrome://extensions/`
             4. Enable "Developer mode" in the top right
             5. Click "Load unpacked" and select the unzipped folder
-            
-            ---
-            
-            ### 更新日志 / Changelog
-            
-            ${{ steps.changelog.outputs.COMMITS }}
-            
-            ${{ steps.changelog.outputs.ISSUES != '' && '### 相关 Issue / Related Issues' || '' }}
-            ${{ steps.changelog.outputs.ISSUES }}
             
             ---
             
