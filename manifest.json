@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Coffer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A secure vault for your cookies and storage - manage, copy, paste across tabs and incognito mode",
   "permissions": [
     "cookies",
