@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,6 +33,41 @@ jobs:
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Get previous tag
+        id: get_previous_tag
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG="${{ steps.get_previous_tag.outputs.PREVIOUS_TAG }}"
+          CURRENT_TAG="v${{ steps.get_version.outputs.VERSION }}"
+          REPO="${{ github.repository }}"
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s" --reverse)
+          else
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s" --reverse)
+          fi
+          
+          # Save commits to file for multiline output
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Extract issue numbers from commits
+          ISSUES=$(echo "$COMMITS" | grep -oE '#[0-9]+' | sort -u || echo "")
+          if [ -n "$ISSUES" ]; then
+            ISSUES_LINKS=$(echo "$ISSUES" | sed "s/#\([0-9]*\)/- [#\1](https:\/\/github.com\/${REPO}\/issues\/\1)/")
+            echo "ISSUES<<EOF" >> $GITHUB_OUTPUT
+            echo "$ISSUES_LINKS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "ISSUES=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create ZIP archive
         run: |
@@ -57,6 +94,15 @@ jobs:
             3. Open Chrome and go to `chrome://extensions/`
             4. Enable "Developer mode" in the top right
             5. Click "Load unpacked" and select the unzipped folder
+            
+            ---
+            
+            ### 更新日志 / Changelog
+            
+            ${{ steps.changelog.outputs.COMMITS }}
+            
+            ${{ steps.changelog.outputs.ISSUES != '' && '### 相关 Issue / Related Issues' || '' }}
+            ${{ steps.changelog.outputs.ISSUES }}
             
             ---
             
