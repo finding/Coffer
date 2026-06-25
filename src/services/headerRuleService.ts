@@ -56,7 +56,7 @@ export class HeaderRuleService {
 
   private getOperation(action: 'add' | 'modify' | 'remove') {
     switch (action) {
-      case 'add': return 'append'
+      case 'add': return 'set'
       case 'modify': return 'set'
       case 'remove': return 'remove'
     }
