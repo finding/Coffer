@@ -32,8 +32,12 @@ export interface Settings {
 
 export type CookieAttribute = 'secure' | 'httpOnly' | 'session'
 
+// Import header rule types for use in MessagePayload
+import type { HeaderProfile } from './headerRule'
+export * from './headerRule'
+
 export interface MessagePayload {
-  action: 'getClipboard' | 'setClipboard' | 'getSettings' | 'setSettings' | 'getStorage' | 'setStorageItem' | 'removeStorageItem' | 'setStorageItems' | 'removeStorageItems' | 'getStorageClipboard' | 'setStorageClipboard'
+  action: 'getClipboard' | 'setClipboard' | 'getSettings' | 'setSettings' | 'getStorage' | 'setStorageItem' | 'removeStorageItem' | 'setStorageItems' | 'removeStorageItems' | 'getStorageClipboard' | 'setStorageClipboard' | 'getHeaderProfiles' | 'setHeaderProfiles' | 'syncHeaderRules' | 'exportHeaderProfiles' | 'importHeaderProfiles'
   data?: unknown
   tabId?: number
   storageType?: 'local' | 'session'
@@ -41,6 +45,11 @@ export interface MessagePayload {
   value?: string
   items?: { key: string; value: string }[]
   keys?: string[]
+  profiles?: HeaderProfile[]
+  profileId?: string
+  ruleId?: string
+  profileData?: HeaderProfile
+  jsonString?: string
 }
 
 export interface MessageResponse<T = unknown> {
