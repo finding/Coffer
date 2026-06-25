@@ -497,6 +497,7 @@ watch(activeTab, async (newTab) => {
 
 async function init() {
   await settingStore.load()
+  await headerRuleStore.loadProfiles()
   const response = await chrome.runtime.sendMessage({ action: 'getClipboard' })
   if (response?.success && response?.data) {
     clipboardStore.items = response.data
