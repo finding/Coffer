@@ -81,8 +81,41 @@
       </div>
     </div>
 
-    <div v-else class="flex-1 flex items-center justify-center text-gray-500">
-      Select or create a profile to manage rules
+    <!-- Profile List (when no profile selected) -->
+    <div v-else class="flex-1 overflow-auto p-3">
+      <div class="space-y-2">
+        <div
+          v-for="profile in profiles"
+          :key="profile.id"
+          class="flex items-center gap-3 p-3 bg-white rounded border hover:shadow-sm"
+        >
+          <div class="flex-1 min-w-0">
+            <div class="font-medium break-all">{{ profile.name }}</div>
+            <div class="text-sm text-gray-500">{{ profile.rules.length }} rules</div>
+          </div>
+          <button
+            @click="selectProfile(profile.id)"
+            class="px-2 py-1 bg-blue-100 text-blue-600 rounded text-sm hover:bg-blue-200"
+          >
+            Select
+          </button>
+          <button
+            @click="editProfile(profile)"
+            class="px-2 py-1 bg-gray-100 rounded text-sm hover:bg-gray-200"
+          >
+            Edit
+          </button>
+          <button
+            @click="deleteProfile(profile.id)"
+            class="px-2 py-1 bg-red-100 text-red-600 rounded text-sm hover:bg-red-200"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+      <div v-if="profiles.length === 0" class="text-center text-gray-500 py-8">
+        No profiles. Click "New Profile" to create one.
+      </div>
     </div>
 
     <!-- New Profile Modal -->
@@ -98,6 +131,23 @@
         <div class="flex justify-end gap-2">
           <button @click="showNewProfileModal = false" class="px-3 py-1.5 bg-gray-200 rounded">Cancel</button>
           <button @click="createProfile" class="px-3 py-1.5 bg-blue-500 text-white rounded">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div v-if="editingProfile" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="editingProfile = null">
+      <div class="bg-white rounded-lg p-4 w-80">
+        <h3 class="text-lg font-semibold mb-3">Edit Profile</h3>
+        <input
+          v-model="editingProfileName"
+          type="text"
+          placeholder="Profile name"
+          class="w-full px-3 py-2 border rounded mb-3"
+        />
+        <div class="flex justify-end gap-2">
+          <button @click="editingProfile = null" class="px-3 py-1.5 bg-gray-200 rounded">Cancel</button>
+          <button @click="saveProfileName" class="px-3 py-1.5 bg-blue-500 text-white rounded">Save</button>
         </div>
       </div>
     </div>
@@ -186,7 +236,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useHeaderRuleStore } from '@/stores/headerRuleStore'
-import type { HeaderRule, HttpMethod, HeaderTarget, HeaderAction } from '@/types'
+import type { HeaderRule, HeaderProfile, HttpMethod, HeaderTarget, HeaderAction } from '@/types'
 
 const store = useHeaderRuleStore()
 
@@ -194,6 +244,8 @@ const selectedProfileId = ref<string | null>(null)
 const showNewProfileModal = ref(false)
 const showNewRuleModal = ref(false)
 const editingRule = ref<HeaderRule | null>(null)
+const editingProfile = ref<HeaderProfile | null>(null)
+const editingProfileName = ref('')
 const newProfileName = ref('')
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
@@ -238,6 +290,42 @@ async function createProfile() {
   newProfileName.value = ''
   showNewProfileModal.value = false
   showMessage('Profile created')
+}
+
+function selectProfile(profileId: string) {
+  selectedProfileId.value = profileId
+  store.setActiveProfile(profileId)
+}
+
+function editProfile(profile: HeaderProfile) {
+  editingProfile.value = profile
+  editingProfileName.value = profile.name
+}
+
+async function saveProfileName() {
+  if (!editingProfile.value) return
+  if (!editingProfileName.value.trim()) {
+    showMessage('Please enter a profile name', 'error')
+    return
+  }
+  await store.updateProfile(editingProfile.value.id, { name: editingProfileName.value.trim() })
+  editingProfile.value = null
+  showMessage('Profile updated')
+}
+
+async function deleteProfile(profileId: string) {
+  const profile = profiles.value.find(p => p.id === profileId)
+  if (!profile) return
+
+  if (profile.rules.length > 0) {
+    if (!confirm(`Delete "${profile.name}" and its ${profile.rules.length} rules?`)) return
+  }
+
+  await store.deleteProfile(profileId)
+  if (selectedProfileId.value === profileId) {
+    selectedProfileId.value = null
+  }
+  showMessage('Profile deleted')
 }
 
 async function toggleRule(ruleId: string) {
