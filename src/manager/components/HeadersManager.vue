@@ -33,6 +33,16 @@
 
     <!-- Rules List -->
     <div v-if="activeProfile" class="flex-1 overflow-auto p-3">
+      <!-- Batch Actions Bar -->
+      <div v-if="selectedRules.size > 0" class="mb-2 p-2 bg-blue-50 rounded flex items-center gap-2">
+        <span class="text-sm text-blue-700">{{ selectedRules.size }} selected</span>
+        <button @click="batchDelete" class="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">
+          Delete Selected
+        </button>
+        <button @click="selectedRules.clear()" class="px-2 py-1 bg-gray-200 rounded text-sm hover:bg-gray-300">
+          Clear Selection
+        </button>
+      </div>
       <div class="space-y-2">
         <div
           v-for="(rule, index) in activeProfile.rules"
@@ -41,20 +51,27 @@
           @dragstart="onDragStart($event, index)"
           @dragover.prevent
           @drop="onDrop($event, index)"
-          class="flex items-center gap-3 p-3 bg-white rounded border hover:shadow-sm"
+          :class="['flex items-center gap-3 p-3 bg-white rounded border hover:shadow-sm', selectedRules.has(rule.id) && 'ring-2 ring-blue-400']"
         >
           <input
             type="checkbox"
-            :checked="rule.enabled"
-            @change="toggleRule(rule.id)"
-            class="w-4 h-4"
+            :checked="selectedRules.has(rule.id)"
+            @change="toggleSelectRule(rule.id)"
+            class="w-4 h-4 rounded"
           >
-          <div class="flex-1">
-            <div class="font-medium">{{ rule.name }}</div>
-            <div class="text-sm text-gray-500">
+          <button
+            @click="toggleRule(rule.id)"
+            :class="['w-10 h-5 rounded-full transition-colors relative', rule.enabled ? 'bg-green-500' : 'bg-gray-300']"
+            title="Enable/Disable"
+          >
+            <span :class="['absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform', rule.enabled ? 'translate-x-5' : 'translate-x-0.5']"></span>
+          </button>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium break-all">{{ rule.name }}</div>
+            <div class="text-sm text-gray-500 break-all">
               {{ rule.headerName }}: {{ rule.action !== 'remove' ? rule.headerValue : '(removed)' }}
             </div>
-            <div class="text-xs text-gray-400 mt-1">
+            <div class="text-xs text-gray-400 mt-1 break-all">
               {{ rule.urlPattern }} · {{ rule.methods.join(', ') || 'ALL' }} · {{ rule.target }}
             </div>
           </div>
@@ -180,6 +197,7 @@ const messageType = ref<'success' | 'error'>('success')
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const draggedIndex = ref<number | null>(null)
+const selectedRules = ref<Set<string>>(new Set())
 
 const profiles = computed(() => store.profiles)
 const activeProfile = computed(() => store.activeProfile)
@@ -225,6 +243,24 @@ async function toggleRule(ruleId: string) {
   if (rule) {
     await store.updateRule(activeProfile.value.id, ruleId, { enabled: !rule.enabled })
   }
+}
+
+function toggleSelectRule(ruleId: string) {
+  if (selectedRules.value.has(ruleId)) {
+    selectedRules.value.delete(ruleId)
+  } else {
+    selectedRules.value.add(ruleId)
+  }
+}
+
+async function batchDelete() {
+  if (!activeProfile.value || selectedRules.value.size === 0) return
+  if (!confirm(`Delete ${selectedRules.value.size} selected rules?`)) return
+  for (const ruleId of selectedRules.value) {
+    await store.deleteRule(activeProfile.value.id, ruleId)
+  }
+  selectedRules.value.clear()
+  showMessage('Selected rules deleted')
 }
 
 function editRule(rule: HeaderRule) {
