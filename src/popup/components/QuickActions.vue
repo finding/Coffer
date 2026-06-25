@@ -47,17 +47,17 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ 
+defineProps<{
   loading: boolean
   count: number
-  mode: 'cookies' | 'local' | 'session'
+  mode: 'cookies' | 'local' | 'session' | 'headers'
 }>()
-defineEmits<{ 
+defineEmits<{
   copy: []
   paste: []
   delete: []
   import: []
   export: []
-  'update:mode': ['cookies' | 'local' | 'session']
+  'update:mode': ['cookies' | 'local' | 'session' | 'headers']
 }>()
 </script>
