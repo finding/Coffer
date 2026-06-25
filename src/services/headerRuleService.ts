@@ -49,7 +49,7 @@ export class HeaderRuleService {
       condition: {
         urlFilter: rule.urlPattern,
         requestMethods,
-        resourceTypes: ['xmlhttprequest', 'script', 'image', 'stylesheet', 'media', 'font', 'document', 'other']
+        resourceTypes: ['xmlhttprequest', 'script', 'image', 'stylesheet', 'media', 'font', 'main_frame', 'sub_frame', 'other']
       }
     }
   }
