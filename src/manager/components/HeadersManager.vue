@@ -165,12 +165,12 @@
     </div>
 
     <!-- Batch Actions Bar (bottom) -->
-    <div v-if="selectedRules.size > 0" class="p-3 bg-blue-50 border-t flex items-center justify-center gap-2 flex-shrink-0">
-      <span class="text-sm text-blue-700">{{ selectedRules.size }} selected</span>
-      <button @click="batchDelete" class="px-3 py-1.5 bg-red-500 text-white rounded text-sm hover:bg-red-600">
-        Delete Selected
+    <div v-if="selectedRules.size > 0" class="p-4 bg-gray-50 border-t flex gap-2 flex-shrink-0">
+      <span class="text-sm text-gray-500 self-center mr-4">{{ selectedRules.size }} selected</span>
+      <button @click="batchDelete" class="px-4 py-2 bg-chrome-red text-white rounded-lg hover:bg-red-600">
+        Delete
       </button>
-      <button @click="selectedRules.clear()" class="px-3 py-1.5 bg-gray-200 rounded text-sm hover:bg-gray-300">
+      <button @click="selectedRules.clear()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
         Clear
       </button>
     </div>
