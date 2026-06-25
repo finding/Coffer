@@ -1,12 +1,27 @@
 <template>
   <div class="w-80 p-4 bg-gray-50 min-h-[400px]">
-    <StatusCard 
-      :domain="currentDomain" 
+    <StatusCard
+      :domain="currentDomain"
       :cookie-count="cookieCount"
       :local-storage-count="localStorageCount"
       :session-storage-count="sessionStorageCount"
     />
+    <div class="flex gap-1 mb-3">
+      <button
+        v-for="m in ['cookies', 'local', 'session', 'headers']"
+        :key="m"
+        @click="currentMode = m as any"
+        :class="[
+          'px-3 py-1.5 text-sm rounded transition-colors',
+          currentMode === m ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'
+        ]"
+      >
+        {{ m === 'cookies' ? 'Cookies' : m === 'local' ? 'Local' : m === 'session' ? 'Session' : 'Headers' }}
+      </button>
+    </div>
+
     <QuickActions
+      v-if="currentMode !== 'headers'"
       :loading="loading"
       :count="currentCount"
       :mode="currentMode"
@@ -17,6 +32,8 @@
       @import="handleImport"
       @export="handleExport"
     />
+    <HeadersTab v-else @open-manager="openManager" />
+
     <button
       @click="openManager"
       class="w-full mt-4 py-2 px-4 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
@@ -42,6 +59,7 @@ import { storageService } from '@/services/storageService'
 import type { CookieItem, StorageItem } from '@/types'
 import StatusCard from './components/StatusCard.vue'
 import QuickActions from './components/QuickActions.vue'
+import HeadersTab from './components/HeadersTab.vue'
 
 const cookieStore = useCookieStore()
 const clipboardStore = useClipboardStore()
@@ -53,7 +71,7 @@ const loading = ref(false)
 const message = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const currentTabId = ref<number | null>(null)
-const currentMode = ref<'cookies' | 'local' | 'session'>('cookies')
+const currentMode = ref<'cookies' | 'local' | 'session' | 'headers'>('cookies')
 
 const currentDomain = computed(() => cookieStore.currentDomain)
 const cookieCount = computed(() => cookieStore.cookieCount)
@@ -63,7 +81,8 @@ const sessionStorageCount = computed(() => sessionStorageStore.items.length)
 const currentCount = computed(() => {
   if (currentMode.value === 'cookies') return cookieCount.value
   if (currentMode.value === 'local') return localStorageCount.value
-  return sessionStorageCount.value
+  if (currentMode.value === 'session') return sessionStorageCount.value
+  return 0  // headers mode doesn't show count
 })
 
 const messageClass = computed(() =>

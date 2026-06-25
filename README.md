@@ -21,9 +21,17 @@ A secure vault for your cookies and storage data - manage, copy, paste across ta
 - **Batch Operations**: Select multiple items for batch operations
 - **Import & Export**: Import/export storage data in JSON format
 
+### Header Modification
+- **Request Headers**: Add, modify, or remove request headers for debugging and testing
+- **Response Headers**: Modify response headers for development and testing
+- **URL Pattern Matching**: Apply rules based on URL patterns with wildcard support
+- **HTTP Method Filter**: Target specific request methods (GET, POST, PUT, etc.)
+- **Profile Management**: Create multiple profiles for different environments
+- **Import/Export**: Share profiles across team members
+
 ### User Interface
 - **Popup**: Quick actions for current tab (copy all, paste, delete all, import/export)
-- **Manager Page**: Full-featured management interface with tabs for Cookies/LocalStorage/SessionStorage
+- **Manager Page**: Full-featured management interface with tabs for Cookies/LocalStorage/SessionStorage/Headers
 - **DevTools Panel**: Integrated into Chrome DevTools for developers
 - **Domain Filtering**: Filter cookies by domain with smart matching
 

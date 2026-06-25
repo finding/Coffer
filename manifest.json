@@ -10,7 +10,9 @@
     "tabs",
     "scripting",
     "clipboardRead",
-    "clipboardWrite"
+    "clipboardWrite",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback"
   ],
   "host_permissions": [
     "<all_urls>"

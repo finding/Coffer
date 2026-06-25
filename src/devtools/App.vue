@@ -1,33 +1,50 @@
 <template>
   <div class="h-screen flex flex-col bg-gray-100">
-    <header class="bg-white border-b px-4 py-3 flex items-center justify-between">
+    <header class="bg-white border-b px-4 py-2 flex items-center gap-4">
       <h1 class="text-lg font-semibold">Coffer DevTools</h1>
-      <div class="flex gap-2">
-        <button @click="showNewModal = true" class="px-3 py-1.5 bg-chrome-blue text-white rounded-lg hover:bg-blue-600 text-sm">New Cookie</button>
-        <button @click="showSettings = true" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Settings</button>
-        <button @click="loadAllCookies" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Refresh</button>
+      <div class="flex gap-1">
+        <button
+          @click="activePanel = 'cookies'"
+          :class="['px-3 py-1 text-sm rounded', activePanel === 'cookies' ? 'bg-blue-500 text-white' : 'bg-gray-200']"
+        >
+          Cookies
+        </button>
+        <button
+          @click="activePanel = 'headers'"
+          :class="['px-3 py-1 text-sm rounded', activePanel === 'headers' ? 'bg-blue-500 text-white' : 'bg-gray-200']"
+        >
+          Headers
+        </button>
       </div>
+      <div class="flex-1"></div>
+      <button @click="showNewModal = true" class="px-3 py-1.5 bg-chrome-blue text-white rounded-lg hover:bg-blue-600 text-sm" v-if="activePanel === 'cookies'">New Cookie</button>
+      <button @click="showSettings = true" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Settings</button>
+      <button @click="refresh" class="px-3 py-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">Refresh</button>
     </header>
 
-    <FilterBar
-      @update:keyword="handleKeywordUpdate"
-      @update:attribute="handleAttributeUpdate"
-    />
+    <template v-if="activePanel === 'cookies'">
+      <FilterBar
+        @update:keyword="handleKeywordUpdate"
+        @update:attribute="handleAttributeUpdate"
+      />
 
-    <CookieList
-      :cookies="filteredCookies"
-      :selected="selectedCookies"
-      @update:selected="selectedCookies = $event"
-      @edit="handleEdit"
-      @delete="handleDelete"
-    />
+      <CookieList
+        :cookies="filteredCookies"
+        :selected="selectedCookies"
+        @update:selected="selectedCookies = $event"
+        @edit="handleEdit"
+        @delete="handleDelete"
+      />
 
-    <BatchActions
-      :selected-count="selectedCookies.size"
-      @copy="handleBatchCopy"
-      @delete="handleBatchDelete"
-      @export="handleBatchExport"
-    />
+      <BatchActions
+        :selected-count="selectedCookies.size"
+        @copy="handleBatchCopy"
+        @delete="handleBatchDelete"
+        @export="handleBatchExport"
+      />
+    </template>
+
+    <HeadersPanel v-else />
 
     <CookieDetail
       v-if="showDetailModal"
@@ -62,6 +79,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useCookieStore } from '@/stores/cookieStore'
 import { useClipboardStore } from '@/stores/clipboardStore'
 import { useSettingStore } from '@/stores/settingStore'
+import { useHeaderRuleStore } from '@/stores/headerRuleStore'
 import { cookieManager } from '@/services/cookieManager'
 import { storageService } from '@/services/storageService'
 import type { CookieItem } from '@/types'
@@ -70,10 +88,14 @@ import CookieList from './components/CookieList.vue'
 import CookieDetail from './components/CookieDetail.vue'
 import BatchActions from './components/BatchActions.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import HeadersPanel from './components/HeadersPanel.vue'
 
 const cookieStore = useCookieStore()
 const clipboardStore = useClipboardStore()
 const settingStore = useSettingStore()
+const headerRuleStore = useHeaderRuleStore()
+
+const activePanel = ref<'cookies' | 'headers'>('cookies')
 
 const selectedCookies = ref<Set<CookieItem>>(new Set())
 const editingCookie = ref<CookieItem | undefined>(undefined)
@@ -202,6 +224,14 @@ async function loadAllCookies() {
     cookieStore.cookies = allCookies
   } catch {
     showMessage('Failed to load cookies', 'error')
+  }
+}
+
+async function refresh() {
+  if (activePanel.value === 'cookies') {
+    await loadAllCookies()
+  } else {
+    await headerRuleStore.loadProfiles()
   }
 }
 
