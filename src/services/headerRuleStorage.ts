@@ -23,7 +23,10 @@ export class HeaderRuleStorage {
   }
 
   async saveProfiles(profiles: HeaderProfile[]): Promise<void> {
-    await chrome.storage.local.set({ [PROFILES_KEY]: profiles })
+    const data = JSON.parse(JSON.stringify(profiles))
+    await chrome.storage.local.set({ [PROFILES_KEY]: data })
+    const verify = await chrome.storage.local.get(PROFILES_KEY)
+    console.log('[HeaderStorage] saved', verify[PROFILES_KEY]?.length, 'profiles')
   }
 
   async getActiveProfileId(): Promise<string | null> {

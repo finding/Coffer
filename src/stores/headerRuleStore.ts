@@ -78,14 +78,17 @@ export const useHeaderRuleStore = defineStore('headerRules', () => {
   }
 
   async function addRule(profileId: string, rule: HeaderRule): Promise<void> {
+    console.log('[HeaderStore] addRule', profileId, rule.name)
     const profile = profiles.value.find(p => p.id === profileId)
     if (profile) {
       profile.rules.push(rule)
       await saveProfiles()
-
+      console.log('[HeaderStore] saved profiles:', profiles.value.length, 'total rules:', profile.rules.length)
       if (activeProfileId.value === profileId) {
         await headerRuleService.syncRulesToChrome(profile)
       }
+    } else {
+      console.error('[HeaderStore] profile not found:', profileId)
     }
   }
 
