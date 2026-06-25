@@ -5,6 +5,7 @@
       :cookie-count="cookieCount"
       :local-storage-count="localStorageCount"
       :session-storage-count="sessionStorageCount"
+      :headers-count="headersCount"
     />
     <div class="flex gap-1 mb-3 bg-gray-200 rounded-lg p-1">
       <button
@@ -54,6 +55,7 @@ import { useClipboardStore } from '@/stores/clipboardStore'
 import { useSettingStore } from '@/stores/settingStore'
 import { useLocalStorageStore } from '@/stores/localStorageStore'
 import { useSessionStorageStore } from '@/stores/sessionStorageStore'
+import { useHeaderRuleStore } from '@/stores/headerRuleStore'
 import { cookieManager } from '@/services/cookieManager'
 import { storageService } from '@/services/storageService'
 import type { CookieItem, StorageItem } from '@/types'
@@ -66,6 +68,7 @@ const clipboardStore = useClipboardStore()
 const settingStore = useSettingStore()
 const localStorageStore = useLocalStorageStore()
 const sessionStorageStore = useSessionStorageStore()
+const headerRuleStore = useHeaderRuleStore()
 
 const loading = ref(false)
 const message = ref('')
@@ -77,6 +80,7 @@ const currentDomain = computed(() => cookieStore.currentDomain)
 const cookieCount = computed(() => cookieStore.cookieCount)
 const localStorageCount = computed(() => localStorageStore.items.length)
 const sessionStorageCount = computed(() => sessionStorageStore.items.length)
+const headersCount = computed(() => headerRuleStore.activeProfile?.rules.length ?? 0)
 
 const currentCount = computed(() => {
   if (currentMode.value === 'cookies') return cookieCount.value
@@ -107,7 +111,8 @@ async function init() {
       await sessionStorageStore.loadItems(tab.id, url.hostname)
     }
     await settingStore.load()
-    
+    await headerRuleStore.loadProfiles()
+
     const response = await chrome.runtime.sendMessage({ action: 'getClipboard' })
     if (response?.success && response?.data) {
       clipboardStore.items = response.data
