@@ -6,14 +6,14 @@
       :local-storage-count="localStorageCount"
       :session-storage-count="sessionStorageCount"
     />
-    <div class="flex gap-1 mb-3">
+    <div class="flex gap-1 mb-3 bg-gray-200 rounded-lg p-1">
       <button
         v-for="m in ['cookies', 'local', 'session', 'headers']"
         :key="m"
         @click="currentMode = m as any"
         :class="[
-          'px-3 py-1.5 text-sm rounded transition-colors',
-          currentMode === m ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'
+          'flex-1 py-1.5 px-2 rounded-md text-sm font-medium transition-colors',
+          currentMode === m ? 'bg-white shadow' : 'hover:bg-gray-100'
         ]"
       >
         {{ m === 'cookies' ? 'Cookies' : m === 'local' ? 'Local' : m === 'session' ? 'Session' : 'Headers' }}

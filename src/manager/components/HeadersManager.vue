@@ -272,27 +272,31 @@ async function saveRule() {
     return
   }
 
-  const ruleData: HeaderRule = {
-    id: editingRule.value?.id ?? `rule-${Date.now()}`,
-    enabled: editingRule.value?.enabled ?? true,
-    name: ruleForm.value.name,
-    urlPattern: ruleForm.value.urlPattern,
-    methods: ruleForm.value.methods,
-    action: ruleForm.value.action,
-    headerName: ruleForm.value.headerName,
-    headerValue: ruleForm.value.headerValue,
-    target: ruleForm.value.target
-  }
+  try {
+    const ruleData: HeaderRule = {
+      id: editingRule.value?.id ?? `rule-${Date.now()}`,
+      enabled: editingRule.value?.enabled ?? true,
+      name: ruleForm.value.name,
+      urlPattern: ruleForm.value.urlPattern,
+      methods: ruleForm.value.methods,
+      action: ruleForm.value.action,
+      headerName: ruleForm.value.headerName,
+      headerValue: ruleForm.value.headerValue,
+      target: ruleForm.value.target
+    }
 
-  if (editingRule.value) {
-    await store.updateRule(activeProfile.value.id, editingRule.value.id, ruleData)
-    showMessage('Rule updated')
-  } else {
-    await store.addRule(activeProfile.value.id, ruleData)
-    showMessage('Rule created')
-  }
+    if (editingRule.value) {
+      await store.updateRule(activeProfile.value.id, editingRule.value.id, ruleData)
+      showMessage('Rule updated')
+    } else {
+      await store.addRule(activeProfile.value.id, ruleData)
+      showMessage('Rule created')
+    }
 
-  closeRuleModal()
+    closeRuleModal()
+  } catch (e) {
+    showMessage('Failed to save rule: ' + (e instanceof Error ? e.message : 'Unknown error'), 'error')
+  }
 }
 
 function onDragStart(_e: DragEvent, index: number) {

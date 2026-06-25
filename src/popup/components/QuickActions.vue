@@ -1,26 +1,5 @@
 <template>
   <div class="space-y-2">
-    <div class="flex gap-1 bg-gray-200 rounded-lg p-1">
-      <button 
-        @click="$emit('update:mode', 'cookies')"
-        :class="mode === 'cookies' ? 'bg-white shadow' : 'hover:bg-gray-100'"
-        class="flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors">
-        Cookies
-      </button>
-      <button 
-        @click="$emit('update:mode', 'local')"
-        :class="mode === 'local' ? 'bg-white shadow' : 'hover:bg-gray-100'"
-        class="flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors">
-        Local
-      </button>
-      <button 
-        @click="$emit('update:mode', 'session')"
-        :class="mode === 'session' ? 'bg-white shadow' : 'hover:bg-gray-100'"
-        class="flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-colors">
-        Session
-      </button>
-    </div>
-    
     <button @click="$emit('copy')" :disabled="loading || count === 0"
       class="w-full py-2 px-4 bg-chrome-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors">
       Copy All
