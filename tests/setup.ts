@@ -35,6 +35,10 @@ const mockChrome = {
       addListener: vi.fn()
     },
     sendMessage: vi.fn()
+  },
+  declarativeNetRequest: {
+    updateDynamicRules: vi.fn().mockResolvedValue(undefined),
+    getDynamicRules: vi.fn().mockResolvedValue([])
   }
 }
 
