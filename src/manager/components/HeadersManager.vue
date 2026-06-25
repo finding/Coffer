@@ -175,8 +175,10 @@
       </button>
     </div>
 
-    <div v-if="message" :class="['fixed bottom-20 left-1/2 -translate-x-1/2 p-3 rounded-lg shadow-lg text-sm z-50', messageClass]">
-      {{ message }}
+    <div v-if="message" class="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+      <div :class="['p-3 rounded-lg shadow-lg text-sm', messageClass]">
+        {{ message }}
+      </div>
     </div>
   </div>
 </template>
