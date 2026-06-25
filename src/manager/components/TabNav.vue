@@ -1,3 +1,4 @@
+<!-- src/manager/components/TabNav.vue -->
 <template>
   <div class="flex border-b bg-white">
     <button
@@ -5,8 +6,8 @@
       :key="tab.id"
       @click="$emit('update:active', tab.id)"
       class="px-4 py-2 text-sm font-medium transition-colors"
-      :class="active === tab.id 
-        ? 'text-chrome-blue border-b-2 border-chrome-blue' 
+      :class="active === tab.id
+        ? 'text-chrome-blue border-b-2 border-chrome-blue'
         : 'text-gray-600 hover:text-gray-800'"
     >
       {{ tab.label }}
@@ -18,15 +19,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps<{ 
-  active: 'cookies' | 'local' | 'session';
-  counts?: { cookies?: number; local?: number; session?: number }
+const props = defineProps<{
+  active: 'cookies' | 'local' | 'session' | 'headers';
+  counts?: { cookies?: number; local?: number; session?: number; headers?: number }
 }>()
-defineEmits<{ 'update:active': ['cookies' | 'local' | 'session'] }>()
+defineEmits<{ 'update:active': ['cookies' | 'local' | 'session' | 'headers'] }>()
 
 const tabs = computed(() => [
   { id: 'cookies' as const, label: 'Cookies', count: props.counts?.cookies },
   { id: 'local' as const, label: 'LocalStorage', count: props.counts?.local },
-  { id: 'session' as const, label: 'SessionStorage', count: props.counts?.session }
+  { id: 'session' as const, label: 'SessionStorage', count: props.counts?.session },
+  { id: 'headers' as const, label: 'Headers', count: props.counts?.headers }
 ])
 </script>

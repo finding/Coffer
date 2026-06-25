@@ -76,6 +76,10 @@
       />
     </template>
 
+    <template v-else-if="activeTab === 'headers'">
+      <HeadersManager />
+    </template>
+
     <CookieDetail
       v-if="showDetailModal"
       :cookie="editingCookie"
@@ -125,6 +129,7 @@ import { useClipboardStore } from '@/stores/clipboardStore'
 import { useSettingStore } from '@/stores/settingStore'
 import { useLocalStorageStore } from '@/stores/localStorageStore'
 import { useSessionStorageStore } from '@/stores/sessionStorageStore'
+import { useHeaderRuleStore } from '@/stores/headerRuleStore'
 import { cookieManager } from '@/services/cookieManager'
 import { storageService } from '@/services/storageService'
 import type { CookieItem, StorageItem } from '@/types'
@@ -136,14 +141,16 @@ import SettingsPanel from '@/devtools/components/SettingsPanel.vue'
 import TabNav from '@/manager/components/TabNav.vue'
 import StorageList from '@/devtools/components/StorageList.vue'
 import StorageDetail from '@/devtools/components/StorageDetail.vue'
+import HeadersManager from '@/manager/components/HeadersManager.vue'
 
 const cookieStore = useCookieStore()
 const clipboardStore = useClipboardStore()
 const settingStore = useSettingStore()
 const localStorageStore = useLocalStorageStore()
 const sessionStorageStore = useSessionStorageStore()
+const headerRuleStore = useHeaderRuleStore()
 
-const activeTab = ref<'cookies' | 'local' | 'session'>('cookies')
+const activeTab = ref<'cookies' | 'local' | 'session' | 'headers'>('cookies')
 const selectedCookies = ref<Set<CookieItem>>(new Set())
 const editingCookie = ref<CookieItem | undefined>(undefined)
 const showDetailModal = ref(false)
@@ -171,13 +178,19 @@ const messageClass = computed(() =>
 const newButtonLabel = computed(() => {
   if (activeTab.value === 'cookies') return 'New Cookie'
   if (activeTab.value === 'local') return 'New Item'
+  if (activeTab.value === 'headers') return 'New Profile'
   return 'New Item'
 })
+
+const headersCount = computed(() =>
+  headerRuleStore.activeProfile?.rules.length ?? 0
+)
 
 const tabCounts = computed(() => ({
   cookies: cookieStore.cookies.length,
   local: localStorageStore.items.length,
-  session: sessionStorageStore.items.length
+  session: sessionStorageStore.items.length,
+  headers: headersCount.value
 }))
 
 const filteredCookies = computed(() => {
