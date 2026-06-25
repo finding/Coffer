@@ -266,7 +266,10 @@ function resetRuleForm() {
 }
 
 async function saveRule() {
-  if (!activeProfile.value) return
+  if (!activeProfile.value) {
+    showMessage('Please select a profile first', 'error')
+    return
+  }
   if (!ruleForm.value.name || !ruleForm.value.headerName) {
     showMessage('Name and Header Name are required', 'error')
     return
@@ -295,6 +298,7 @@ async function saveRule() {
 
     closeRuleModal()
   } catch (e) {
+    console.error('saveRule error:', e)
     showMessage('Failed to save rule: ' + (e instanceof Error ? e.message : 'Unknown error'), 'error')
   }
 }

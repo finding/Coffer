@@ -15,7 +15,11 @@ const DEFAULT_PROFILE: HeaderProfile = {
 export class HeaderRuleStorage {
   async getProfiles(): Promise<HeaderProfile[]> {
     const result = await chrome.storage.local.get(PROFILES_KEY)
-    return result[PROFILES_KEY] ?? [DEFAULT_PROFILE]
+    const profiles = result[PROFILES_KEY]
+    if (!profiles || !Array.isArray(profiles)) {
+      return [DEFAULT_PROFILE]
+    }
+    return profiles
   }
 
   async saveProfiles(profiles: HeaderProfile[]): Promise<void> {
