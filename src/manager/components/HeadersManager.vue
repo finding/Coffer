@@ -33,16 +33,6 @@
 
     <!-- Rules List -->
     <div v-if="activeProfile" class="flex-1 overflow-auto p-3">
-      <!-- Batch Actions Bar -->
-      <div v-if="selectedRules.size > 0" class="mb-2 p-2 bg-blue-50 rounded flex items-center gap-2">
-        <span class="text-sm text-blue-700">{{ selectedRules.size }} selected</span>
-        <button @click="batchDelete" class="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">
-          Delete Selected
-        </button>
-        <button @click="selectedRules.clear()" class="px-2 py-1 bg-gray-200 rounded text-sm hover:bg-gray-300">
-          Clear Selection
-        </button>
-      </div>
       <div class="space-y-2">
         <div
           v-for="(rule, index) in activeProfile.rules"
@@ -61,10 +51,10 @@
           >
           <button
             @click="toggleRule(rule.id)"
-            :class="['w-10 h-5 rounded-full transition-colors relative', rule.enabled ? 'bg-green-500' : 'bg-gray-300']"
+            :class="['w-10 h-5 rounded-full transition-colors relative flex-shrink-0', rule.enabled ? 'bg-green-500' : 'bg-gray-300']"
             title="Enable/Disable"
           >
-            <span :class="['absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform', rule.enabled ? 'translate-x-5' : 'translate-x-0.5']"></span>
+            <span :class="['absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform', rule.enabled ? 'translate-x-5' : 'translate-x-0']"></span>
           </button>
           <div class="flex-1 min-w-0">
             <div class="font-medium break-all">{{ rule.name }}</div>
@@ -174,7 +164,18 @@
       </div>
     </div>
 
-    <div v-if="message" :class="['fixed bottom-4 left-1/2 -translate-x-1/2 p-3 rounded-lg shadow-lg text-sm', messageClass]">
+    <!-- Batch Actions Bar (bottom) -->
+    <div v-if="selectedRules.size > 0" class="p-3 bg-blue-50 border-t flex items-center justify-center gap-2 flex-shrink-0">
+      <span class="text-sm text-blue-700">{{ selectedRules.size }} selected</span>
+      <button @click="batchDelete" class="px-3 py-1.5 bg-red-500 text-white rounded text-sm hover:bg-red-600">
+        Delete Selected
+      </button>
+      <button @click="selectedRules.clear()" class="px-3 py-1.5 bg-gray-200 rounded text-sm hover:bg-gray-300">
+        Clear
+      </button>
+    </div>
+
+    <div v-if="message" :class="['fixed bottom-20 left-1/2 -translate-x-1/2 p-3 rounded-lg shadow-lg text-sm z-50', messageClass]">
       {{ message }}
     </div>
   </div>
