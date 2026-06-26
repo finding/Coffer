@@ -106,6 +106,73 @@ export const INJECTED_SCRIPT = `
     return result
   }
 
+  // Apply rewrites to FormData
+  // Returns a new FormData with modified string values
+  function rewriteFormData(formData, rewrites, url, method) {
+    var newFormData = new FormData()
+
+    // Process each entry
+    var entries = []
+    try {
+      entries = Array.from(formData.entries())
+    } catch (e) {
+      // Fallback for older browsers
+      return formData
+    }
+
+    for (var i = 0; i < entries.length; i++) {
+      var key = entries[i][0]
+      var value = entries[i][1]
+
+      if (typeof value === 'string') {
+        var modifiedValue = value
+
+        for (var j = 0; j < rewrites.length; j++) {
+          var rewrite = rewrites[j]
+          try {
+            switch (rewrite.method) {
+              case 'text': {
+                if (rewrite.find) {
+                  modifiedValue = modifiedValue.split(rewrite.find).join(rewrite.replace || '')
+                }
+                break
+              }
+              case 'jsonPath': {
+                // jsonPath for FormData: treat path as field name
+                if (rewrite.path === key && rewrite.value) {
+                  modifiedValue = applyVariables(rewrite.value)
+                }
+                break
+              }
+              case 'regex': {
+                if (rewrite.pattern) {
+                  var regex = new RegExp(rewrite.pattern, 'g')
+                  modifiedValue = modifiedValue.replace(regex, rewrite.replacement || '')
+                }
+                break
+              }
+              case 'script': {
+                if (rewrite.scriptBody) {
+                  var modifyFn = new Function('value', 'key', 'url', 'method', rewrite.scriptBody)
+                  modifiedValue = modifyFn(modifiedValue, key, url, method)
+                }
+                break
+              }
+            }
+          } catch (e) {
+            console.error('[RequestRewrite] FormData rewrite error:', e)
+          }
+        }
+        newFormData.set(key, modifiedValue)
+      } else {
+        // Keep File/Blob unchanged
+        newFormData.set(key, value)
+      }
+    }
+
+    return newFormData
+  }
+
   // Rewrite GET request query parameters
   function rewriteGetParams(url, rewrites) {
     var parts = url.split('?')
@@ -295,7 +362,15 @@ export const INJECTED_SCRIPT = `
         // Body rewrite for non-GET requests
         if (body && rule.bodyRewrites && rule.bodyRewrites.length > 0) {
           try {
-            init.body = applyRewrites(String(body), rule.bodyRewrites, url, method)
+            // Check if body is FormData
+            if (body instanceof FormData) {
+              init.body = rewriteFormData(body, rule.bodyRewrites, url, method)
+            } else if (typeof body === 'string') {
+              init.body = applyRewrites(body, rule.bodyRewrites, url, method)
+            } else {
+              // Try to convert to string for other types (URLSearchParams, etc)
+              init.body = applyRewrites(String(body), rule.bodyRewrites, url, method)
+            }
           } catch (e) {
             console.error('[RequestRewrite] Request body rewrite error:', e)
           }
@@ -388,7 +463,14 @@ export const INJECTED_SCRIPT = `
           var rule = requestRules[i]
           if (rule.bodyRewrites && rule.bodyRewrites.length > 0) {
             try {
-              _body = applyRewrites(String(_body), rule.bodyRewrites, _url, _method)
+              // Check if body is FormData
+              if (_body instanceof FormData) {
+                _body = rewriteFormData(_body, rule.bodyRewrites, _url, _method)
+              } else if (typeof _body === 'string') {
+                _body = applyRewrites(_body, rule.bodyRewrites, _url, _method)
+              } else {
+                _body = applyRewrites(String(_body), rule.bodyRewrites, _url, _method)
+              }
             } catch (e) {
               console.error('[RequestRewrite] XHR request body rewrite error:', e)
             }

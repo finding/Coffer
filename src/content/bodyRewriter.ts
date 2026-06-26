@@ -111,6 +111,68 @@ export function rewriteBody(
 }
 
 /**
+ * Apply rewrite operations to FormData
+ * Returns a new FormData with modified values
+ */
+export function rewriteFormData(
+  formData: FormData,
+  rewrites: BodyRewriteAction[],
+  url: string,
+  method: string
+): FormData {
+  const newFormData = new FormData()
+
+  // Copy existing entries
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === 'string') {
+      // Apply rewrites to string values
+      let modifiedValue = value
+      for (const rewrite of rewrites) {
+        try {
+          switch (rewrite.method) {
+            case 'text': {
+              if (rewrite.find) {
+                modifiedValue = modifiedValue.split(rewrite.find).join(rewrite.replace || '')
+              }
+              break
+            }
+            case 'jsonPath': {
+              // jsonPath for FormData: treat path as field name
+              if (rewrite.path === key && rewrite.value) {
+                modifiedValue = applyVariables(rewrite.value)
+              }
+              break
+            }
+            case 'regex': {
+              if (rewrite.pattern) {
+                const regex = new RegExp(rewrite.pattern, 'g')
+                modifiedValue = modifiedValue.replace(regex, rewrite.replacement || '')
+              }
+              break
+            }
+            case 'script': {
+              if (rewrite.scriptBody) {
+                const modifyFn = new Function('value', 'key', 'url', 'method', rewrite.scriptBody)
+                modifiedValue = modifyFn(modifiedValue, key, url, method)
+              }
+              break
+            }
+          }
+        } catch (e) {
+          console.error('[BodyRewriter] FormData rewrite error:', e, rewrite)
+        }
+      }
+      newFormData.set(key, modifiedValue)
+    } else {
+      // Keep File/Blob unchanged
+      newFormData.set(key, value)
+    }
+  }
+
+  return newFormData
+}
+
+/**
  * Apply rewrite operations to GET request query parameters
  * Operations are applied in sequence
  */
