@@ -36,6 +36,10 @@ export type CookieAttribute = 'secure' | 'httpOnly' | 'session'
 import type { HeaderProfile } from './headerRule'
 export * from './headerRule'
 
+// Import new RequestRewrite and Variable types
+export * from './requestRewrite'
+export * from './variable'
+
 export interface MessagePayload {
   action: 'getClipboard' | 'setClipboard' | 'getSettings' | 'setSettings' | 'getStorage' | 'setStorageItem' | 'removeStorageItem' | 'setStorageItems' | 'removeStorageItems' | 'getStorageClipboard' | 'setStorageClipboard' | 'getHeaderProfiles' | 'setHeaderProfiles' | 'syncHeaderRules' | 'exportHeaderProfiles' | 'importHeaderProfiles'
   data?: unknown
