@@ -1,36 +1,32 @@
-# Task 8 Report: DevTools HeadersPanel Component
+# Task 8 Report: 新存储服务
 
-**Status:** DONE
+## 1. Files Created
+- `src/services/requestRewriteStorage.ts` (56 lines)
 
-## Summary
+## 2. Methods Exported
+```typescript
+export class RequestRewriteStorage {
+  async init(): Promise<void>
+  async getProfiles(): Promise<RequestRewriteProfile[]>
+  async saveProfiles(profiles: RequestRewriteProfile[]): Promise<void>
+  async getActiveProfileId(): Promise<string | null>
+  async setActiveProfileId(profileId: string | null): Promise<void>
+  async getActiveProfile(): Promise<RequestRewriteProfile | null>
+}
 
-Successfully created the DevTools HeadersPanel component and integrated it into the DevTools App.
-
-## Files Modified
-
-### Created
-- `src/devtools/components/HeadersPanel.vue` - New component for managing header rules in DevTools
-  - Profile selector dropdown with rule counts
-  - Rule list with enable/disable toggles
-  - Refresh button to reload profiles
-  - Message notifications for user feedback
-
-### Modified
-- `src/devtools/App.vue` - Added Headers panel tab
-  - Added tab navigation between Cookies and Headers panels
-  - Added `activePanel` state for tab switching
-  - Added `refresh()` function that handles both panels
-  - Integrated `useHeaderRuleStore`
-  - Conditionally renders CookiesPanel or HeadersPanel based on active tab
-
-## Verification
-
-- Build completed successfully with no errors
-- All TypeScript types resolved correctly
-- Commit created with specified message
-
-## Commit
-
+export const requestRewriteStorage: RequestRewriteStorage
 ```
-8f8e5a2 feat: add Headers panel to DevTools
-```
+
+## 3. Build Verification
+- `npm run build` - SUCCESS
+- All TypeScript compilation passed via vue-tsc
+
+## 4. Commits Made
+- `e930d81` feat: add RequestRewrite storage service
+
+## 5. Concerns
+None. Implementation follows the brief exactly:
+- Storage key `headerProfiles` preserved for backward compatibility
+- `init()` calls `checkAndMigrate()` for automatic migration
+- Default profile returned when no profiles exist
+- Deep copy of profiles before storage to avoid reference issues

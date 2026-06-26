@@ -16,7 +16,7 @@
         <div class="text-xl font-bold text-purple-600">{{ sessionStorageCount }}</div>
       </div>
       <div>
-        <span class="text-xs text-gray-500">Headers</span>
+        <span class="text-xs text-gray-500">Rewrite</span>
         <div class="text-xl font-bold text-orange-600">{{ headersCount }}</div>
       </div>
     </div>
