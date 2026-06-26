@@ -243,6 +243,11 @@
                   <option value="regex">Regex</option>
                   <option value="script">Script</option>
                 </select>
+                <button @click="openRewriteTest(idx)" class="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded" title="Test">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
                 <button @click="ruleForm.bodyRewrites.splice(idx, 1)" class="px-2 py-1.5 text-red-500 hover:text-red-700 ml-auto">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -256,17 +261,17 @@
               </template>
               <!-- JSON Path method -->
               <template v-else-if="rewrite.method === 'jsonPath'">
-                <input v-model="rewrite.path" type="text" placeholder="$.path.to.field" class="w-full px-2 py-1.5 border rounded text-sm" />
-                <input v-model="rewrite.value" type="text" placeholder="New value" class="w-full px-2 py-1.5 border rounded text-sm" />
+                <input v-model="rewrite.path" type="text" placeholder="data.token" class="w-full px-2 py-1.5 border rounded text-sm" />
+                <input v-model="rewrite.value" type="text" placeholder="New value (use {{varName}})" class="w-full px-2 py-1.5 border rounded text-sm" />
               </template>
               <!-- Regex method -->
               <template v-else-if="rewrite.method === 'regex'">
-                <input v-model="rewrite.pattern" type="text" placeholder="Pattern (e.g. /\d+/g)" class="w-full px-2 py-1.5 border rounded text-sm" />
+                <input v-model="rewrite.pattern" type="text" placeholder="Pattern (e.g. &quot;token&quot;:[^&quot;]+)" class="w-full px-2 py-1.5 border rounded text-sm" />
                 <input v-model="rewrite.replacement" type="text" placeholder="Replacement" class="w-full px-2 py-1.5 border rounded text-sm" />
               </template>
               <!-- Script method -->
               <template v-else-if="rewrite.method === 'script'">
-                <textarea v-model="rewrite.scriptBody" placeholder="// return transformed body&#10;(body) => body.replace(/old/g, 'new')" class="w-full px-2 py-1.5 border rounded text-sm font-mono h-24 resize-y"></textarea>
+                <textarea v-model="rewrite.scriptBody" rows="4" placeholder="(body) => body.replace(/old/g, 'new')" class="w-full px-2 py-1.5 border rounded text-sm font-mono"></textarea>
               </template>
             </div>
             <button @click="addBodyRewrite" class="w-full px-3 py-1.5 border border-dashed rounded text-sm text-gray-500 hover:text-blue-500 hover:border-blue-300">
@@ -347,6 +352,55 @@
       </div>
     </div>
 
+    <!-- Rewrite Test Modal -->
+    <div v-if="showRewriteTestModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showRewriteTestModal = false">
+      <div class="bg-white rounded-lg p-4 w-[500px] max-h-[80vh] overflow-auto">
+        <h3 class="text-lg font-semibold mb-3">Test Body Rewrite</h3>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1 text-gray-600">Method</label>
+          <div class="px-3 py-2 bg-gray-100 rounded text-sm capitalize">{{ rewriteTestMethod }}</div>
+        </div>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Test Input</label>
+          <textarea
+            v-model="rewriteTestInput"
+            rows="4"
+            placeholder='{"token": "old_value", "name": "test"}'
+            class="w-full px-3 py-2 border rounded text-sm font-mono"
+          ></textarea>
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Result</label>
+          <div class="px-3 py-2 bg-gray-50 rounded text-sm">
+            <template v-if="rewriteTestInput">
+              <div v-if="rewriteTestResult.error" class="text-red-600">
+                ✗ {{ rewriteTestResult.error }}
+              </div>
+              <template v-else>
+                <div v-if="rewriteTestResult.highlightedParts" class="font-mono whitespace-pre-wrap break-all">
+                  <template v-for="(part, idx) in rewriteTestResult.highlightedParts" :key="idx">
+                    <span v-if="part.highlighted" class="bg-yellow-200">{{ part.text }}</span>
+                    <span v-else>{{ part.text }}</span>
+                  </template>
+                </div>
+                <div v-else class="text-green-600">
+                  ✓ Matched and replaced
+                </div>
+                <div v-if="rewriteTestResult.output" class="mt-2 pt-2 border-t">
+                  <div class="text-xs text-gray-500 mb-1">Output:</div>
+                  <pre class="text-xs bg-white p-2 rounded overflow-auto max-h-32">{{ rewriteTestResult.output }}</pre>
+                </div>
+              </template>
+            </template>
+            <span v-else class="text-gray-400">Enter test input</span>
+          </div>
+        </div>
+        <div class="flex justify-end">
+          <button @click="showRewriteTestModal = false" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Close</button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="message" class="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
       <div :class="['p-3 rounded-lg shadow-lg text-sm', messageClass]">
         {{ message }}
@@ -392,6 +446,122 @@ const confirmModal = ref<{
 
 const showPatternTestModal = ref(false)
 const patternTestUrl = ref('')
+
+// Rewrite test state
+const showRewriteTestModal = ref(false)
+const rewriteTestIndex = ref(0)
+const rewriteTestInput = ref('')
+const rewriteTestMethod = ref('text')
+
+interface RewriteTestPart {
+  text: string
+  highlighted: boolean
+}
+
+const rewriteTestResult = computed(() => {
+  const rewrite = ruleForm.value.bodyRewrites[rewriteTestIndex.value]
+  if (!rewrite || !rewriteTestInput.value) {
+    return { error: '', output: '', highlightedParts: [] as RewriteTestPart[] }
+  }
+
+  try {
+    let output = rewriteTestInput.value
+    const parts: RewriteTestPart[] = []
+
+    switch (rewrite.method) {
+      case 'text': {
+        if (rewrite.find) {
+          // Highlight matched parts
+          let idx = 0
+          let pos = output.indexOf(rewrite.find)
+          while (pos !== -1 && idx < 10) { // Limit to 10 matches
+            if (pos > idx) {
+              parts.push({ text: output.slice(idx, pos), highlighted: false })
+            }
+            parts.push({ text: rewrite.find, highlighted: true })
+            idx = pos + rewrite.find.length
+            pos = output.indexOf(rewrite.find, idx)
+          }
+          if (idx < output.length) {
+            parts.push({ text: output.slice(idx), highlighted: false })
+          }
+          output = output.split(rewrite.find).join(rewrite.replace || '')
+        }
+        break
+      }
+      case 'jsonPath': {
+        if (rewrite.path && rewrite.value) {
+          const json = JSON.parse(output)
+          // Simple path resolution
+          const pathParts = rewrite.path.split('.')
+          let current = json
+          for (let i = 0; i < pathParts.length - 1; i++) {
+            if (!current[pathParts[i]]) {
+              return { error: `Path not found: ${pathParts[i]}`, output: '', highlightedParts: [] }
+            }
+            current = current[pathParts[i]]
+          }
+          const lastKey = pathParts[pathParts.length - 1]
+          current[lastKey] = rewrite.value
+          output = JSON.stringify(json, null, 2)
+        }
+        break
+      }
+      case 'regex': {
+        if (rewrite.pattern) {
+          try {
+            // Parse pattern - handle both /pattern/flags and raw pattern
+            let pattern = rewrite.pattern
+            let flags = 'g'
+            if (pattern.startsWith('/') && pattern.lastIndexOf('/') > 0) {
+              const lastSlash = pattern.lastIndexOf('/')
+              flags = pattern.slice(lastSlash + 1) || 'g'
+              pattern = pattern.slice(1, lastSlash)
+            }
+            const regex = new RegExp(pattern, flags)
+            // Highlight matches
+            output = rewriteTestInput.value.replace(regex, rewrite.replacement || '')
+            // Show if there were matches
+            const matches = rewriteTestInput.value.match(regex)
+            if (matches) {
+              parts.push({ text: `${matches.length} match(es) found`, highlighted: false })
+            }
+          } catch (e) {
+            return { error: 'Invalid regex: ' + (e instanceof Error ? e.message : 'unknown'), output: '', highlightedParts: [] }
+          }
+        }
+        break
+      }
+      case 'script': {
+        if (rewrite.scriptBody) {
+          try {
+            // Syntax check first
+            new Function('body', rewrite.scriptBody)
+            // Try execution
+            const fn = new Function('body', 'url', 'method', 'return (' + rewrite.scriptBody + ')(body, url, method)')
+            output = fn(rewriteTestInput.value, 'https://test.com', 'POST')
+          } catch (e) {
+            return { error: 'Script error: ' + (e instanceof Error ? e.message : 'unknown'), output: '', highlightedParts: [] }
+          }
+        }
+        break
+      }
+    }
+
+    return { error: '', output, highlightedParts: parts }
+  } catch (e) {
+    return { error: (e instanceof Error ? e.message : 'unknown error'), output: '', highlightedParts: [] }
+  }
+})
+
+function openRewriteTest(idx: number) {
+  const rewrite = ruleForm.value.bodyRewrites[idx]
+  if (!rewrite) return
+  rewriteTestIndex.value = idx
+  rewriteTestMethod.value = rewrite.method
+  rewriteTestInput.value = ''
+  showRewriteTestModal.value = true
+}
 
 interface PatternTestPart {
   text: string
