@@ -691,7 +691,7 @@ async function saveRule() {
       urlPattern: ruleForm.value.urlPattern,
       methods: ruleForm.value.methods,
       target: ruleForm.value.target,
-      headers: ruleForm.value.headers.filter(h => h.headerName.trim() !== ''),
+      headers: ruleForm.value.headers.filter(h => h.headerName?.trim() !== ''),
       bodyRewrites: ruleForm.value.bodyRewrites
     }
 
