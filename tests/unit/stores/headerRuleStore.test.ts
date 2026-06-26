@@ -25,8 +25,18 @@ vi.mock('@/services/headerRuleService', () => ({
 
 describe('headerRuleStore', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    const pinia = createPinia()
+    setActivePinia(pinia)
     vi.clearAllMocks()
+
+    // Reset store state before each test
+    const store = useHeaderRuleStore()
+    store.$patch({
+      profiles: [],
+      activeProfileId: null,
+      loading: false,
+      error: null
+    })
   })
 
   it('should load profiles on init', async () => {
