@@ -215,12 +215,12 @@
     </div>
 
     <!-- Batch Actions Bar (bottom) -->
-    <div v-if="selectedRules.size > 0" class="p-4 bg-gray-50 border-t flex gap-2 flex-shrink-0">
+    <div v-if="activeProfile" class="p-4 bg-gray-50 border-t flex gap-2 flex-shrink-0">
       <span class="text-sm text-gray-500 self-center mr-4">{{ selectedRules.size }} selected</span>
-      <button @click="batchDelete" class="px-4 py-2 bg-chrome-red text-white rounded-lg hover:bg-red-600 disabled:opacity-50">
+      <button @click="batchDelete" :disabled="selectedRules.size === 0" class="px-4 py-2 bg-chrome-red text-white rounded-lg hover:bg-red-600 disabled:opacity-50">
         Delete
       </button>
-      <button @click="selectedRules.clear()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+      <button @click="selectedRules.clear()" :disabled="selectedRules.size === 0" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50">
         Clear
       </button>
     </div>
