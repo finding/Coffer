@@ -1,6 +1,8 @@
 import { storageService } from '@/services/storageService'
 import { headerRuleStorage } from '@/services/headerRuleStorage'
 import { headerRuleService } from '@/services/headerRuleService'
+import { requestRewriteStorage } from '@/services/requestRewriteStorage'
+import { variableStorage } from '@/services/variableStorage'
 import type { MessagePayload, MessageResponse, StorageItem, HeaderProfile } from '@/types'
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -83,6 +85,33 @@ async function handleMessage(message: MessagePayload): Promise<MessageResponse> 
       } catch {
         return { success: false, error: 'Parse error' }
       }
+    case 'getRequestRewriteRules': {
+      const profile = await requestRewriteStorage.getActiveProfile()
+      const presetVars = await variableStorage.getPresetVariables()
+
+      const variables: Record<string, string> = {}
+      for (const v of presetVars) {
+        variables[v.name] = v.value
+      }
+
+      return {
+        success: true,
+        data: {
+          rules: profile?.rules || [],
+          variables
+        }
+      }
+    }
+    case 'requestRewriteRulesUpdated':
+      // Broadcast to all tabs
+      chrome.tabs.query({}, (tabs) => {
+        for (const tab of tabs) {
+          if (tab.id) {
+            chrome.tabs.sendMessage(tab.id, { action: 'REQUEST_REWRITE_RULES_UPDATED' }).catch(() => {})
+          }
+        }
+      })
+      return { success: true }
     default:
       return { success: false, error: 'Unknown action' }
   }
