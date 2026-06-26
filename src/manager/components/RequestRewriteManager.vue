@@ -216,18 +216,16 @@
 
           <!-- Headers Tab -->
           <div v-show="ruleEditTab === 'headers'" class="space-y-2">
-            <div v-for="(header, idx) in ruleForm.headers" :key="idx" class="flex gap-2 items-start p-2 bg-gray-50 rounded">
-              <select v-model="header.action" class="px-2 py-1.5 border rounded text-sm w-20">
+            <div v-for="(header, idx) in ruleForm.headers" :key="idx" class="flex gap-2 items-center p-2 bg-gray-50 rounded">
+              <select v-model="header.action" class="px-2 py-1.5 border rounded text-sm w-20 shrink-0">
                 <option value="add">Add</option>
                 <option value="modify">Modify</option>
                 <option value="remove">Remove</option>
               </select>
-              <input v-model="header.headerName" type="text" placeholder="Header Name" class="flex-1 px-2 py-1.5 border rounded text-sm" />
-              <input v-if="header.action !== 'remove'" v-model="header.headerValue" type="text" placeholder="Value" class="flex-1 px-2 py-1.5 border rounded text-sm" />
-              <button @click="ruleForm.headers.splice(idx, 1)" :disabled="ruleForm.headers.length === 1" class="px-2 py-1.5 text-red-500 hover:text-red-700 disabled:opacity-30">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+              <input v-model="header.headerName" type="text" placeholder="Header Name" class="flex-1 min-w-0 px-2 py-1.5 border rounded text-sm" />
+              <input v-if="header.action !== 'remove'" v-model="header.headerValue" type="text" placeholder="Value" class="flex-1 min-w-0 px-2 py-1.5 border rounded text-sm" />
+              <button @click="ruleForm.headers.splice(idx, 1)" :disabled="ruleForm.headers.length === 1" class="shrink-0 w-8 h-8 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-30">
+                ✕
               </button>
             </div>
             <button @click="ruleForm.headers.push({ action: 'add', headerName: '', headerValue: '' })" class="w-full px-3 py-1.5 border border-dashed rounded text-sm text-gray-500 hover:text-blue-500 hover:border-blue-300">
