@@ -17,7 +17,7 @@
           currentMode === m ? 'bg-white shadow' : 'hover:bg-gray-100'
         ]"
       >
-        {{ m === 'cookies' ? 'Cookies' : m === 'local' ? 'Local' : m === 'session' ? 'Session' : 'Headers' }}
+        {{ m === 'cookies' ? 'Cookies' : m === 'local' ? 'Local' : m === 'session' ? 'Session' : 'RequestRewrite' }}
       </button>
     </div>
 

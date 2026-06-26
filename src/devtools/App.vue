@@ -13,7 +13,7 @@
           @click="activePanel = 'headers'"
           :class="['px-3 py-1 text-sm rounded', activePanel === 'headers' ? 'bg-blue-500 text-white' : 'bg-gray-200']"
         >
-          Headers
+          RequestRewrite
         </button>
       </div>
       <div class="flex-1"></div>
