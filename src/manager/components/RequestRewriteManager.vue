@@ -534,15 +534,41 @@ const rewriteTestResult = computed(() => {
       }
       case 'script': {
         if (rewrite.scriptBody) {
-          try {
-            // Syntax check first
-            new Function('body', rewrite.scriptBody)
-            // Try execution
-            const fn = new Function('body', 'url', 'method', 'return (' + rewrite.scriptBody + ')(body, url, method)')
-            output = fn(rewriteTestInput.value, 'https://test.com', 'POST')
-          } catch (e) {
-            return { error: 'Script error: ' + (e instanceof Error ? e.message : 'unknown'), output: '', highlightedParts: [] }
+          // CSP prevents eval/new Function in extension UI
+          // Script execution only happens in injected page context
+          // We can only validate basic syntax patterns
+          const script = rewrite.scriptBody.trim()
+
+          // Basic validation checks
+          const checks = []
+          if (script.length === 0) {
+            return { error: 'Script body is empty', output: '', highlightedParts: [] }
           }
+
+          // Check for balanced braces/parentheses
+          let braces = 0, parens = 0
+          for (const ch of script) {
+            if (ch === '{') braces++
+            if (ch === '}') braces--
+            if (ch === '(') parens++
+            if (ch === ')') parens--
+          }
+          if (braces !== 0) checks.push('Unbalanced braces')
+          if (parens !== 0) checks.push('Unbalanced parentheses')
+
+          // Check for return statement
+          if (!script.includes('return') && !script.startsWith('(body)') && !script.startsWith('body')) {
+            checks.push('Missing return statement')
+          }
+
+          if (checks.length > 0) {
+            return { error: 'Possible issues: ' + checks.join(', '), output: '', highlightedParts: [] }
+          }
+
+          // Show note about where script runs
+          parts.push({ text: '✓ Script syntax looks valid', highlighted: false })
+          parts.push({ text: '\nNote: Script runs in page context, not here', highlighted: false })
+          output = 'Script will be executed when request is intercepted'
         }
         break
       }
