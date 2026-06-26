@@ -57,7 +57,8 @@ function applySingleRewrite(
     switch (rewrite.method) {
       case 'text': {
         if (!rewrite.find) return body
-        return body.replaceAll(rewrite.find, rewrite.replace || '')
+        // Use split/join for ES compatibility instead of replaceAll
+        return body.split(rewrite.find).join(rewrite.replace || '')
       }
 
       case 'jsonPath': {
@@ -127,7 +128,8 @@ export function rewriteGetParams(
       switch (rewrite.method) {
         case 'text': {
           if (rewrite.find) {
-            currentQueryString = currentQueryString.replaceAll(rewrite.find, rewrite.replace || '')
+            // Use split/join for ES compatibility instead of replaceAll
+            currentQueryString = currentQueryString.split(rewrite.find).join(rewrite.replace || '')
           }
           break
         }
