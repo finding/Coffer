@@ -217,12 +217,24 @@
     <!-- Batch Actions Bar (bottom) -->
     <div v-if="selectedRules.size > 0" class="p-4 bg-gray-50 border-t flex gap-2 flex-shrink-0">
       <span class="text-sm text-gray-500 self-center mr-4">{{ selectedRules.size }} selected</span>
-      <button @click="batchDelete" class="px-4 py-2 bg-chrome-red text-white rounded-lg hover:bg-red-600">
+      <button @click="batchDelete" class="px-4 py-2 bg-chrome-red text-white rounded-lg hover:bg-red-600 disabled:opacity-50">
         Delete
       </button>
       <button @click="selectedRules.clear()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
         Clear
       </button>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div v-if="confirmModal.show" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-4 w-80">
+        <h3 class="text-lg font-semibold mb-3">{{ confirmModal.title }}</h3>
+        <p class="text-sm text-gray-600 mb-4">{{ confirmModal.message }}</p>
+        <div class="flex justify-end gap-2">
+          <button @click="confirmModal.onCancel" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Cancel</button>
+          <button @click="confirmModal.onConfirm" class="px-4 py-2 bg-chrome-red text-white rounded-lg hover:bg-red-600">Delete</button>
+        </div>
+      </div>
     </div>
 
     <div v-if="message" class="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
@@ -254,6 +266,20 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const draggedIndex = ref<number | null>(null)
 const selectedRules = ref<Set<string>>(new Set())
 
+const confirmModal = ref<{
+  show: boolean
+  title: string
+  message: string
+  onConfirm: () => void
+  onCancel: () => void
+}>({
+  show: false,
+  title: '',
+  message: '',
+  onConfirm: () => {},
+  onCancel: () => {}
+})
+
 const profiles = computed(() => store.profiles)
 const activeProfile = computed(() => store.activeProfile)
 
@@ -275,6 +301,21 @@ function showMessage(text: string, type: 'success' | 'error' = 'success') {
   message.value = text
   messageType.value = type
   setTimeout(() => { message.value = '' }, 3000)
+}
+
+function showConfirm(title: string, message: string, onConfirm: () => void) {
+  confirmModal.value = {
+    show: true,
+    title,
+    message,
+    onConfirm: () => {
+      confirmModal.value.show = false
+      onConfirm()
+    },
+    onCancel: () => {
+      confirmModal.value.show = false
+    }
+  }
 }
 
 function handleProfileChange() {
@@ -318,14 +359,24 @@ async function deleteProfile(profileId: string) {
   if (!profile) return
 
   if (profile.rules.length > 0) {
-    if (!confirm(`Delete "${profile.name}" and its ${profile.rules.length} rules?`)) return
+    showConfirm(
+      'Delete Profile',
+      `Delete "${profile.name}" and its ${profile.rules.length} rules?`,
+      async () => {
+        await store.deleteProfile(profileId)
+        if (selectedProfileId.value === profileId) {
+          selectedProfileId.value = null
+        }
+        showMessage('Profile deleted')
+      }
+    )
+  } else {
+    await store.deleteProfile(profileId)
+    if (selectedProfileId.value === profileId) {
+      selectedProfileId.value = null
+    }
+    showMessage('Profile deleted')
   }
-
-  await store.deleteProfile(profileId)
-  if (selectedProfileId.value === profileId) {
-    selectedProfileId.value = null
-  }
-  showMessage('Profile deleted')
 }
 
 async function toggleRule(ruleId: string) {
@@ -346,12 +397,17 @@ function toggleSelectRule(ruleId: string) {
 
 async function batchDelete() {
   if (!activeProfile.value || selectedRules.value.size === 0) return
-  if (!confirm(`Delete ${selectedRules.value.size} selected rules?`)) return
-  for (const ruleId of selectedRules.value) {
-    await store.deleteRule(activeProfile.value.id, ruleId)
-  }
-  selectedRules.value.clear()
-  showMessage('Selected rules deleted')
+  showConfirm(
+    'Delete Rules',
+    `Delete ${selectedRules.value.size} selected rules?`,
+    async () => {
+      for (const ruleId of selectedRules.value) {
+        await store.deleteRule(activeProfile.value!.id, ruleId)
+      }
+      selectedRules.value.clear()
+      showMessage('Selected rules deleted')
+    }
+  )
 }
 
 function editRule(rule: HeaderRule) {
@@ -369,9 +425,14 @@ function editRule(rule: HeaderRule) {
 
 async function deleteRule(ruleId: string) {
   if (!activeProfile.value) return
-  if (!confirm('Delete this rule?')) return
-  await store.deleteRule(activeProfile.value.id, ruleId)
-  showMessage('Rule deleted')
+  showConfirm(
+    'Delete Rule',
+    'Delete this rule?',
+    async () => {
+      await store.deleteRule(activeProfile.value!.id, ruleId)
+      showMessage('Rule deleted')
+    }
+  )
 }
 
 function closeRuleModal() {
