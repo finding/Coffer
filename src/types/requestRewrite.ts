@@ -1,9 +1,14 @@
 // src/types/requestRewrite.ts
 
-import type { HttpMethod, HeaderTarget } from './headerRule'
+/**
+ * HTTP Methods for request matching
+ */
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'ALL'
 
-// Re-export types from headerRule.ts that are reused
-export type { HttpMethod, HeaderTarget } from './headerRule'
+/**
+ * Header target - request or response
+ */
+export type HeaderTarget = 'request' | 'response'
 
 /**
  * Methods for body rewriting
@@ -100,3 +105,27 @@ export interface RequestRewriteProfilesExport {
   version: string
   profiles: RequestRewriteProfile[]
 }
+
+/**
+ * Legacy type aliases for backward compatibility
+ * @deprecated Use RequestRewriteRule instead
+ */
+export type HeaderRule = LegacyHeaderRule
+
+/**
+ * Legacy type alias for backward compatibility
+ * @deprecated Use RequestRewriteProfile instead
+ */
+export type HeaderProfile = LegacyHeaderProfile
+
+/**
+ * Legacy type alias for backward compatibility
+ * @deprecated Use RequestRewriteProfilesExport instead
+ */
+export type HeaderProfilesExport = RequestRewriteProfilesExport
+
+/**
+ * Legacy type alias for backward compatibility
+ * @deprecated Use HeaderRuleAction instead
+ */
+export type HeaderAction = 'add' | 'modify' | 'remove'

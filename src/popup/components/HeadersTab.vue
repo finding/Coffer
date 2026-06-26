@@ -34,7 +34,9 @@
         >
         <div class="flex-1 min-w-0">
           <div class="text-sm font-medium truncate">{{ rule.name }}</div>
-          <div class="text-xs text-gray-500 truncate">{{ rule.headerName }}</div>
+          <div class="text-xs text-gray-500 truncate">
+            {{ rule.headers.length > 0 ? rule.headers[0].headerName : 'No headers' }}
+          </div>
         </div>
         <span class="text-xs px-1.5 py-0.5 rounded" :class="getTargetClass(rule.target)">
           {{ rule.target }}
@@ -50,7 +52,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useHeaderRuleStore } from '@/stores/headerRuleStore'
+import { useHeaderRuleStore } from '@/stores/requestRewriteStore'
 
 defineEmits<{ openManager: [] }>()
 

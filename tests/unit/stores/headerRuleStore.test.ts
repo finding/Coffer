@@ -1,12 +1,13 @@
 // tests/unit/headerRuleStore.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useHeaderRuleStore } from '@/stores/headerRuleStore'
-import type { HeaderRule } from '@/types'
+import { useHeaderRuleStore } from '@/stores/requestRewriteStore'
+import type { RequestRewriteRule } from '@/types'
 
 // Mock storage
-vi.mock('@/services/headerRuleStorage', () => ({
-  headerRuleStorage: {
+vi.mock('@/services/requestRewriteStorage', () => ({
+  requestRewriteStorage: {
+    init: vi.fn().mockResolvedValue(undefined),
     getProfiles: vi.fn().mockResolvedValue([
       { id: 'default', name: 'Default', enabled: true, rules: [] }
     ]),
@@ -68,10 +69,9 @@ describe('headerRuleStore', () => {
       name: 'Test Rule',
       urlPattern: '*://*/*',
       methods: ['ALL'],
-      action: 'add',
-      headerName: 'X-Test',
-      headerValue: 'test',
-      target: 'request'
+      target: 'request',
+      headers: [{ action: 'add', headerName: 'X-Test', headerValue: 'test' }],
+      bodyRewrites: []
     })
 
     const profile = store.profiles.find(p => p.id === 'default')
@@ -88,10 +88,9 @@ describe('headerRuleStore', () => {
       name: 'Test Rule',
       urlPattern: '*://*/*',
       methods: ['ALL'],
-      action: 'add',
-      headerName: 'X-Test',
-      headerValue: 'test',
-      target: 'request'
+      target: 'request',
+      headers: [{ action: 'add', headerName: 'X-Test', headerValue: 'test' }],
+      bodyRewrites: []
     })
 
     await store.deleteRule('default', 'rule-1')
@@ -110,10 +109,9 @@ describe('headerRuleStore', () => {
       name: 'Test Rule',
       urlPattern: '*://*/*',
       methods: ['ALL'],
-      action: 'add',
-      headerName: 'X-Test',
-      headerValue: 'test',
-      target: 'request'
+      target: 'request',
+      headers: [{ action: 'add', headerName: 'X-Test', headerValue: 'test' }],
+      bodyRewrites: []
     })
     await store.updateRule('default', 'rule-1', { name: 'Updated Rule' })
 
@@ -131,10 +129,9 @@ describe('headerRuleStore', () => {
       name: 'Test Rule',
       urlPattern: '*://*/*',
       methods: ['ALL'],
-      action: 'add',
-      headerName: 'X-Test',
-      headerValue: 'test',
-      target: 'request'
+      target: 'request',
+      headers: [{ action: 'add', headerName: 'X-Test', headerValue: 'test' }],
+      bodyRewrites: []
     })
     await store.updateRule('default', 'rule-1', { enabled: false })
 
@@ -180,13 +177,16 @@ describe('headerRuleStore', () => {
     await store.loadProfiles()
 
     await store.addRule('default', {
-      id: 'rule-1', enabled: true, name: 'Rule 1', urlPattern: '*://a.com/*', methods: ['ALL'], action: 'add', headerName: 'X-A', headerValue: 'a', target: 'request'
+      id: 'rule-1', enabled: true, name: 'Rule 1', urlPattern: '*://a.com/*', methods: ['ALL'], target: 'request',
+      headers: [{ action: 'add', headerName: 'X-A', headerValue: 'a' }], bodyRewrites: []
     })
     await store.addRule('default', {
-      id: 'rule-2', enabled: true, name: 'Rule 2', urlPattern: '*://b.com/*', methods: ['ALL'], action: 'add', headerName: 'X-B', headerValue: 'b', target: 'request'
+      id: 'rule-2', enabled: true, name: 'Rule 2', urlPattern: '*://b.com/*', methods: ['ALL'], target: 'request',
+      headers: [{ action: 'add', headerName: 'X-B', headerValue: 'b' }], bodyRewrites: []
     })
     await store.addRule('default', {
-      id: 'rule-3', enabled: true, name: 'Rule 3', urlPattern: '*://c.com/*', methods: ['ALL'], action: 'add', headerName: 'X-C', headerValue: 'c', target: 'request'
+      id: 'rule-3', enabled: true, name: 'Rule 3', urlPattern: '*://c.com/*', methods: ['ALL'], target: 'request',
+      headers: [{ action: 'add', headerName: 'X-C', headerValue: 'c' }], bodyRewrites: []
     })
 
     // Reorder: 3, 1, 2
@@ -211,8 +211,8 @@ describe('headerRuleStore', () => {
   })
 
   it('should handle error on loadProfiles', async () => {
-    const { headerRuleStorage } = await import('@/services/headerRuleStorage')
-    vi.mocked(headerRuleStorage.getProfiles).mockRejectedValueOnce(new Error('Storage error'))
+    const { requestRewriteStorage } = await import('@/services/requestRewriteStorage')
+    vi.mocked(requestRewriteStorage.getProfiles).mockRejectedValueOnce(new Error('Storage error'))
 
     const store = useHeaderRuleStore()
     await store.loadProfiles()

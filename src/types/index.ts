@@ -32,11 +32,8 @@ export interface Settings {
 
 export type CookieAttribute = 'secure' | 'httpOnly' | 'session'
 
-// Import header rule types for use in MessagePayload
-import type { HeaderProfile } from './headerRule'
-export * from './headerRule'
-
-// Import new RequestRewrite and Variable types
+// Import RequestRewrite types (includes legacy Header types for backward compatibility)
+import type { RequestRewriteProfile } from './requestRewrite'
 export * from './requestRewrite'
 export * from './variable'
 
@@ -49,10 +46,10 @@ export interface MessagePayload {
   value?: string
   items?: { key: string; value: string }[]
   keys?: string[]
-  profiles?: HeaderProfile[]
+  profiles?: RequestRewriteProfile[]
   profileId?: string
   ruleId?: string
-  profileData?: HeaderProfile
+  profileData?: RequestRewriteProfile
   jsonString?: string
 }
 

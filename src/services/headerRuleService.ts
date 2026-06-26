@@ -1,7 +1,27 @@
 // src/services/headerRuleService.ts
 
-import type { HeaderRule, HeaderProfile, RequestRewriteProfile, RequestRewriteRule } from '@/types'
-import { headerRuleStorage } from './headerRuleStorage'
+import type { RequestRewriteProfile, RequestRewriteRule } from '@/types'
+import { requestRewriteStorage } from './requestRewriteStorage'
+
+// Legacy types for backward compatibility
+type LegacyHeaderRule = {
+  id: string
+  enabled: boolean
+  name: string
+  urlPattern: string
+  methods: ('GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS' | 'ALL')[]
+  action: 'add' | 'modify' | 'remove'
+  headerName: string
+  headerValue: string
+  target: 'request' | 'response'
+}
+
+type LegacyHeaderProfile = {
+  id: string
+  name: string
+  enabled: boolean
+  rules: LegacyHeaderRule[]
+}
 
 export class HeaderRuleService {
   private ruleIdCounter = 1
@@ -10,7 +30,7 @@ export class HeaderRuleService {
    * Sync rules to Chrome declarativeNetRequest
    * Supports both old HeaderProfile and new RequestRewriteProfile formats
    */
-  async syncRulesToChrome(profile: HeaderProfile | RequestRewriteProfile | null): Promise<void> {
+  async syncRulesToChrome(profile: LegacyHeaderProfile | RequestRewriteProfile | null): Promise<void> {
     await this.clearAllRules()
 
     if (!profile || !profile.enabled) return
@@ -18,7 +38,7 @@ export class HeaderRuleService {
     const enabledRules = profile.rules.filter(r => r.enabled)
 
     // Check if this is the new format (has headers array) or old format (has direct header properties)
-    const firstRule = enabledRules[0] as HeaderRule | RequestRewriteRule
+    const firstRule = enabledRules[0] as LegacyHeaderRule | RequestRewriteRule
     const isNewFormat = firstRule && 'headers' in firstRule
 
     if (isNewFormat) {
@@ -29,7 +49,7 @@ export class HeaderRuleService {
         })
       }
     } else {
-      const chromeRules = this.convertToChromeRules(enabledRules as HeaderRule[])
+      const chromeRules = this.convertToChromeRules(enabledRules as LegacyHeaderRule[])
       if (chromeRules.length > 0) {
         await chrome.declarativeNetRequest.updateDynamicRules({
           addRules: chromeRules as chrome.declarativeNetRequest.Rule[]
@@ -41,7 +61,7 @@ export class HeaderRuleService {
   /**
    * Convert old format HeaderRule to Chrome rules
    */
-  convertToChromeRules(rules: HeaderRule[]): chrome.declarativeNetRequest.Rule[] {
+  convertToChromeRules(rules: LegacyHeaderRule[]): chrome.declarativeNetRequest.Rule[] {
     return rules.map((rule, index) => this.convertSingleRule(rule, index)) as chrome.declarativeNetRequest.Rule[]
   }
 
@@ -68,7 +88,7 @@ export class HeaderRuleService {
   /**
    * Convert a single old format rule to Chrome rule
    */
-  private convertSingleRule(rule: HeaderRule, index: number) {
+  private convertSingleRule(rule: LegacyHeaderRule, index: number) {
     const chromeRuleId = this.ruleIdCounter++
 
     const headerInfo = {
@@ -152,7 +172,7 @@ export class HeaderRuleService {
   }
 
   async initialize(): Promise<void> {
-    const activeProfile = await headerRuleStorage.getActiveProfile()
+    const activeProfile = await requestRewriteStorage.getActiveProfile()
     if (activeProfile) {
       await this.syncRulesToChrome(activeProfile)
     }
