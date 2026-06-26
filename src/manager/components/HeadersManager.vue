@@ -165,7 +165,19 @@
 
           <div>
             <label class="block text-sm font-medium mb-1">URL Pattern</label>
-            <input v-model="ruleForm.urlPattern" type="text" placeholder="*://api.example.com/*" class="w-full px-3 py-2 border rounded" />
+            <div class="flex items-center gap-2">
+              <input v-model="ruleForm.urlPattern" type="text" placeholder="*://api.example.com/*" class="flex-1 px-3 py-2 border rounded" />
+              <button
+                type="button"
+                @click="showPatternTestModal = true"
+                class="p-2 text-gray-500 hover:text-blue-500 hover:bg-gray-100 rounded"
+                title="Test URL Pattern"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div>
@@ -237,6 +249,48 @@
       </div>
     </div>
 
+    <!-- Pattern Test Modal -->
+    <div v-if="showPatternTestModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showPatternTestModal = false">
+      <div class="bg-white rounded-lg p-4 w-[450px]">
+        <h3 class="text-lg font-semibold mb-3">Test URL Pattern</h3>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1 text-gray-600">Pattern</label>
+          <div class="px-3 py-2 bg-gray-100 rounded text-sm font-mono break-all">{{ ruleForm.urlPattern }}</div>
+        </div>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Test URL</label>
+          <input
+            v-model="patternTestUrl"
+            type="text"
+            placeholder="https://api.example.com/v1/users"
+            class="w-full px-3 py-2 border rounded"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Result</label>
+          <div class="px-3 py-2 bg-gray-50 rounded text-sm break-all">
+            <template v-if="patternTestUrl">
+              <span v-if="patternTestResult.matched" class="text-green-600">
+                ✓ Matched
+              </span>
+              <span v-else class="text-red-600">
+                ✗ Not matched
+              </span>
+              <div v-if="patternTestResult.displayUrl" class="mt-2 font-mono">
+                <span v-for="(part, idx) in patternTestResult.parts" :key="idx">
+                  <span :class="part.matched ? 'bg-green-200 text-green-800' : 'text-gray-600'">{{ part.text }}</span>
+                </span>
+              </div>
+            </template>
+            <span v-else class="text-gray-400">Enter a URL to test</span>
+          </div>
+        </div>
+        <div class="flex justify-end">
+          <button @click="showPatternTestModal = false" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Close</button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="message" class="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
       <div :class="['p-3 rounded-lg shadow-lg text-sm', messageClass]">
         {{ message }}
@@ -279,6 +333,112 @@ const confirmModal = ref<{
   onConfirm: () => {},
   onCancel: () => {}
 })
+
+const showPatternTestModal = ref(false)
+const patternTestUrl = ref('')
+
+interface PatternTestPart {
+  text: string
+  matched: boolean
+}
+
+const patternTestResult = computed(() => {
+  const pattern = ruleForm.value.urlPattern
+  const url = patternTestUrl.value
+
+  if (!url) {
+    return { matched: false, displayUrl: '', parts: [] as PatternTestPart[] }
+  }
+
+  const result = matchPattern(pattern, url)
+  const parts: PatternTestPart[] = []
+
+  if (result.matched && result.matchedParts) {
+    let lastEnd = 0
+    for (const part of result.matchedParts) {
+      if (part.start > lastEnd) {
+        parts.push({ text: url.slice(lastEnd, part.start), matched: false })
+      }
+      parts.push({ text: url.slice(part.start, part.end), matched: true })
+      lastEnd = part.end
+    }
+    if (lastEnd < url.length) {
+      parts.push({ text: url.slice(lastEnd), matched: false })
+    }
+  } else {
+    parts.push({ text: url, matched: false })
+  }
+
+  return { matched: result.matched, displayUrl: url, parts }
+})
+
+function matchPattern(pattern: string, url: string): { matched: boolean; matchedParts?: { start: number; end: number }[] } {
+  try {
+    const urlObj = new URL(url)
+    const [scheme, hostPath] = pattern.split('://')
+    const [hostPattern, ...pathParts] = hostPath.split('/')
+    const pathPattern = '/' + pathParts.join('/')
+
+    // Check scheme
+    if (scheme !== '*' && scheme !== urlObj.protocol.replace(':', '')) {
+      return { matched: false }
+    }
+
+    // Check host
+    const hostname = urlObj.hostname
+    let hostMatched = false
+
+    if (hostPattern === '*') {
+      hostMatched = true
+    } else if (hostPattern.startsWith('*.')) {
+      const domain = hostPattern.slice(2)
+      hostMatched = hostname === domain || hostname.endsWith('.' + domain)
+    } else {
+      hostMatched = hostPattern === hostname
+    }
+
+    if (!hostMatched) {
+      return { matched: false }
+    }
+
+    // Check path
+    const path = urlObj.pathname
+    let pathMatched = false
+
+    if (pathPattern === '/*' || pathPattern === '/') {
+      pathMatched = true
+    } else if (pathPattern.includes('*')) {
+      const regexStr = pathPattern.replace(/\*/g, '.*')
+      const regex = new RegExp('^' + regexStr + '$')
+      pathMatched = regex.test(path)
+    } else {
+      pathMatched = path === pathPattern
+    }
+
+    if (!pathMatched) {
+      return { matched: false }
+    }
+
+    // Build matched parts (host + path)
+    const matchedParts: { start: number; end: number }[] = []
+
+    // Find host position in URL
+    const hostStart = url.indexOf(hostname)
+    if (hostStart !== -1) {
+      matchedParts.push({ start: hostStart, end: hostStart + hostname.length })
+    }
+
+    // Find path position in URL
+    const pathStart = url.indexOf(path)
+    if (pathStart !== -1 && pathStart !== hostStart) {
+      matchedParts.push({ start: pathStart, end: pathStart + path.length })
+    }
+
+    return { matched: true, matchedParts }
+  } catch {
+    return { matched: false }
+  }
+}
 
 const profiles = computed(() => store.profiles)
 const activeProfile = computed(() => store.activeProfile)
