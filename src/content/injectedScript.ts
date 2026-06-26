@@ -8,6 +8,15 @@ export const INJECTED_SCRIPT = `
 (function() {
   'use strict'
 
+  // Detect if CSP allows dynamic code execution
+  let cspAllowsEval = true
+  try {
+    new Function('return 1')
+  } catch (e) {
+    cspAllowsEval = false
+    console.warn('[RequestRewrite] CSP blocks dynamic scripts - script method disabled')
+  }
+
   // Rules and variables storage
   let currentRules = []
   let variableMap = new Map()
@@ -18,7 +27,7 @@ export const INJECTED_SCRIPT = `
     if (event.data.type === 'REQUEST_REWRITE_CONFIG') {
       currentRules = event.data.rules || []
       variableMap = new Map(Object.entries(event.data.variables || {}))
-      console.log('[RequestRewrite] Received config:', currentRules.length, 'rules')
+      console.log('[RequestRewrite] Received config:', currentRules.length, 'rules', cspAllowsEval ? '' : '(script method disabled by CSP)')
     }
   })
 
@@ -77,6 +86,11 @@ export const INJECTED_SCRIPT = `
 
         case 'script': {
           if (!rewrite.scriptBody) return body
+          // Check CSP first
+          if (!cspAllowsEval) {
+            console.warn('[RequestRewrite] Script method blocked by page CSP')
+            return body
+          }
           // Create a function that takes body, url, method and returns modified body
           try {
             var modifyFn = new Function('body', 'url', 'method', rewrite.scriptBody)
