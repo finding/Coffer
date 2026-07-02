@@ -48,6 +48,7 @@
       "resources": [
         "src/manager/index.html",
         "manager.js",
+        "injected.js",
         "chunks/*",
         "assets/*"
       ],

@@ -1,17 +1,17 @@
 // src/content/index.ts
 
-import { INJECTED_SCRIPT } from './injectedScript'
-
 /**
- * Inject the script string into page context via a script element.
- * This allows the injected script to run in the page's JavaScript context,
- * giving it access to intercept fetch and XMLHttpRequest.
+ * Inject the external script into page context via a script element with src.
+ * This approach bypasses CSP restrictions that block inline scripts.
  */
 function injectScript(): void {
   const script = document.createElement('script')
-  script.textContent = INJECTED_SCRIPT
+  // Use external script file to bypass CSP inline-script restrictions
+  script.src = chrome.runtime.getURL('injected.js')
+  script.onload = function() {
+    script.remove()
+  }
   ;(document.head || document.documentElement).appendChild(script)
-  script.remove()
 }
 
 /**

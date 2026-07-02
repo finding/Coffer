@@ -23,7 +23,8 @@ export default defineConfig({
         devtools: resolve(__dirname, 'src/devtools/index.html'),
         manager: resolve(__dirname, 'src/manager/index.html'),
         background: resolve(__dirname, 'src/background/index.ts'),
-        content: resolve(__dirname, 'src/content/index.ts')
+        content: resolve(__dirname, 'src/content/index.ts'),
+        injected: resolve(__dirname, 'src/content/injected.ts')
       },
       output: {
         entryFileNames: '[name].js',

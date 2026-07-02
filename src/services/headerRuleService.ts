@@ -77,6 +77,9 @@ export class HeaderRuleService {
       if (!rule.headers || rule.headers.length === 0) continue
 
       for (const headerAction of rule.headers) {
+        // Skip empty header names
+        if (!headerAction.headerName || !headerAction.headerName.trim()) continue
+
         const chromeRule = this.convertNewRuleToChromeRule(rule, headerAction, ruleIndex++)
         chromeRules.push(chromeRule as chrome.declarativeNetRequest.Rule)
       }
