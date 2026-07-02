@@ -1,110 +1,93 @@
-# Task 3: Header 规则核心服务
+# Task 3: 变量存储服务
 
-**Goal:** Create service to sync header rules to Chrome declarativeNetRequest API.
+**Context:** This task creates a storage service for managing variables used in rewrite rules. Variables support preset (user-defined) and auto-extract (from page storage) types.
 
-## Files to Create
+**Files:**
+- Create: `src/services/variableStorage.ts`
 
-- Create: `src/services/headerRuleService.ts`
+**Interfaces:**
+- Consumes: `PresetVariable`, `AutoExtractVariable` from Task 1
+- Produces: `VariableStorage` class with CRUD methods
 
-## Dependencies
+---
 
-This task depends on:
-- `src/types/headerRule.ts` (from Task 1/2)
-- `src/services/headerRuleStorage.ts` (from Task 2)
+## Steps
 
-## Implementation
+- [ ] **Step 1: 创建变量存储服务**
 
 ```typescript
-// src/services/headerRuleService.ts
+// src/services/variableStorage.ts
 
-import type { HeaderRule, HeaderProfile } from '@/types'
-import { headerRuleStorage } from './headerRuleStorage'
+import type { PresetVariable, AutoExtractVariable } from '@/types'
 
-export class HeaderRuleService {
-  private ruleIdCounter = 1
+const PRESET_VARS_KEY = 'presetVariables'
+const AUTO_EXTRACT_VARS_KEY = 'autoExtractVariables'
 
-  async syncRulesToChrome(profile: HeaderProfile | null): Promise<void> {
-    await this.clearAllRules()
-    
-    if (!profile || !profile.enabled) return
-    
-    const enabledRules = profile.rules.filter(r => r.enabled)
-    const chromeRules = this.convertToChromeRules(enabledRules)
-    
-    if (chromeRules.length > 0) {
-      await chrome.declarativeNetRequest.updateDynamicRules({
-        addRules: chromeRules
-      })
+export class VariableStorage {
+  async getPresetVariables(): Promise<PresetVariable[]> {
+    const result = await chrome.storage.local.get(PRESET_VARS_KEY)
+    return result[PRESET_VARS_KEY] || []
+  }
+
+  async savePresetVariables(variables: PresetVariable[]): Promise<void> {
+    await chrome.storage.local.set({ [PRESET_VARS_KEY]: variables })
+  }
+
+  async getAutoExtractVariables(): Promise<AutoExtractVariable[]> {
+    const result = await chrome.storage.local.get(AUTO_EXTRACT_VARS_KEY)
+    return result[AUTO_EXTRACT_VARS_KEY] || []
+  }
+
+  async saveAutoExtractVariables(variables: AutoExtractVariable[]): Promise<void> {
+    await chrome.storage.local.set({ [AUTO_EXTRACT_VARS_KEY]: variables })
+  }
+
+  async addPresetVariable(variable: PresetVariable): Promise<void> {
+    const vars = await this.getPresetVariables()
+    vars.push(variable)
+    await this.savePresetVariables(vars)
+  }
+
+  async updatePresetVariable(name: string, updates: Partial<PresetVariable>): Promise<void> {
+    const vars = await this.getPresetVariables()
+    const index = vars.findIndex(v => v.name === name)
+    if (index !== -1) {
+      vars[index] = { ...vars[index], ...updates }
+      await this.savePresetVariables(vars)
     }
   }
 
-  convertToChromeRules(rules: HeaderRule[]): chrome.declarativeNetRequest.Rule[] {
-    return rules.map((rule, index) => this.convertSingleRule(rule, index))
+  async deletePresetVariable(name: string): Promise<void> {
+    const vars = await this.getPresetVariables()
+    const filtered = vars.filter(v => v.name !== name)
+    await this.savePresetVariables(filtered)
   }
 
-  private convertSingleRule(rule: HeaderRule, index: number): chrome.declarativeNetRequest.Rule {
-    const chromeRuleId = this.ruleIdCounter++
-    
-    const headerInfo: chrome.declarativeNetRequest.ModifyHeaderInfo = {
-      header: rule.headerName,
-      operation: this.getOperation(rule.action),
-      value: rule.action !== 'remove' ? rule.headerValue : undefined
-    }
-
-    const requestMethods = rule.methods.includes('ALL') 
-      ? undefined 
-      : rule.methods.map(m => m.toLowerCase() as chrome.declarativeNetRequest.RequestMethod)
-
-    return {
-      id: chromeRuleId,
-      priority: 1000 - index,
-      action: {
-        type: rule.action === 'remove' ? 'removeHeaders' : 'modifyHeaders',
-        requestHeaders: rule.target === 'request' ? [headerInfo] : undefined,
-        responseHeaders: rule.target === 'response' ? [headerInfo] : undefined
-      },
-      condition: {
-        urlFilter: rule.urlPattern,
-        requestMethods,
-        resourceTypes: ['xmlhttprequest', 'script', 'image', 'stylesheet', 'media', 'font', 'document', 'other']
-      }
-    }
+  async addAutoExtractVariable(variable: AutoExtractVariable): Promise<void> {
+    const vars = await this.getAutoExtractVariables()
+    vars.push(variable)
+    await this.saveAutoExtractVariables(vars)
   }
 
-  private getOperation(action: 'add' | 'modify' | 'remove'): chrome.declarativeNetRequest.HeaderOperation {
-    switch (action) {
-      case 'add': return 'append'
-      case 'modify': return 'set'
-      case 'remove': return 'remove'
-    }
-  }
-
-  async clearAllRules(): Promise<void> {
-    const existingRules = await chrome.declarativeNetRequest.getDynamicRules()
-    if (existingRules.length > 0) {
-      await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: existingRules.map(r => r.id)
-      })
-    }
-    this.ruleIdCounter = 1
-  }
-
-  async initialize(): Promise<void> {
-    const activeProfile = await headerRuleStorage.getActiveProfile()
-    if (activeProfile) {
-      await this.syncRulesToChrome(activeProfile)
-    }
+  async deleteAutoExtractVariable(name: string): Promise<void> {
+    const vars = await this.getAutoExtractVariables()
+    const filtered = vars.filter(v => v.name !== name)
+    await this.saveAutoExtractVariables(filtered)
   }
 }
 
-export const headerRuleService = new HeaderRuleService()
+export const variableStorage = new VariableStorage()
 ```
 
-## Commit
+- [ ] **Step 2: 提交**
 
 ```bash
-git add src/services/headerRuleService.ts
-git commit -m "feat: add header rule service with Chrome API sync
-
-Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
+git add src/services/variableStorage.ts
+git commit -m "feat: add variable storage service"
 ```
+
+---
+
+**Global Constraints:**
+- 变量支持预设变量和自动提取变量两种
+- 变量存储key独立于规则存储

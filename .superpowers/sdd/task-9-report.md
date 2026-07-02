@@ -1,67 +1,59 @@
-# Task 9: Unit Tests Report
+# Task 9 Report: Update Store
 
 ## Status: DONE
 
-## Summary
-Created unit tests for header rule service and store. All 45 tests pass.
+## Files Created
 
-## Files Created/Modified
+### `src/stores/requestRewriteStore.ts`
+- New Pinia store replacing `headerRuleStore`
+- Full CRUD for profiles and rules
+- Notification to content scripts when rules change
+- Backward-compatible alias `useHeaderRuleStore`
 
-### Created
-- `tests/unit/services/headerRuleService.test.ts` - Tests for HeaderRuleService
-- `tests/unit/stores/headerRuleStore.test.ts` - Tests for headerRuleStore
+### `src/services/headerRuleService.ts` (Modified)
+- Updated to support both old `HeaderProfile` and new `RequestRewriteProfile` formats
+- Added `convertNewFormatToChromeRules()` for new format conversion
+- Added `convertNewRuleToChromeRule()` for individual rule conversion
 
-### Modified
-- `tests/setup.ts` - Added `declarativeNetRequest` mock to the Chrome API mock
+## Methods Exported
 
-## Test Coverage
+### State
+- `profiles` - ref to array of RequestRewriteProfile
+- `activeProfileId` - ref to current active profile ID
+- `activeProfile` - computed active profile
+- `loading` - loading state
+- `error` - error state
 
-### headerRuleService.test.ts
-Tests for `HeaderRuleService` class:
+### Profile CRUD
+- `loadProfiles()` - load and initialize storage
+- `saveProfiles()` - save to storage
+- `setActiveProfile(profileId)` - switch active profile + sync + notify
+- `createProfile(name)` - create new profile
+- `updateProfile(profileId, updates)` - update profile
+- `deleteProfile(profileId)` - delete profile
 
-1. **convertToChromeRules**
-   - Convert add request header rule
-   - Convert remove response header rule
-   - Convert modify request header rule
-   - Assign correct priority based on order
+### Rule CRUD
+- `addRule(profileId, rule)` - add rule to profile
+- `updateRule(profileId, ruleId, updates)` - update rule
+- `deleteRule(profileId, ruleId)` - delete rule
+- `reorderRules(profileId, ruleIds)` - reorder rules
 
-2. **syncRulesToChrome**
-   - Clear rules when profile is null
-   - Not sync rules when profile is disabled
-   - Sync enabled rules from profile
-   - Filter out disabled rules
+### Notifications
+- `notifyRulesUpdated()` - send message to background/content scripts
 
-3. **clearAllRules**
-   - Clear existing rules and reset counter
+## Build Verification
 
-### headerRuleStore.test.ts
-Tests for `useHeaderRuleStore` Pinia store:
-
-1. Load profiles on init
-2. Create a new profile
-3. Add rule to profile
-4. Delete rule from profile
-5. Update rule in profile
-6. Toggle rule enabled state
-7. Set active profile
-8. Delete profile
-9. Update profile name
-10. Reorder rules
-11. Compute activeProfile correctly
-12. Handle error on loadProfiles
-
-## Test Results
 ```
-Test Files  7 passed (7)
-Tests       45 passed (45)
+npm run build
 ```
+- Build succeeded with no errors
+- All TypeScript types correctly resolved
 
-## Commit
-```
-541885f test: add unit tests for header rule service and store
-```
+## Commits Made
+
+1. `934e411` - feat: add RequestRewrite store with full CRUD operations
 
 ## Notes
-- Tests follow existing patterns from `cookieStore.test.ts` and `storageService.test.ts`
-- Added `declarativeNetRequest` mock to global test setup for Chrome API compatibility
-- Used `vi.mock` for mocking storage and service dependencies in store tests
+- Updated `headerRuleService.ts` to support both old and new profile formats
+- The service now automatically detects the format based on whether rules have `headers` array
+- Backward compatibility maintained via `useHeaderRuleStore` alias

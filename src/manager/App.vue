@@ -77,7 +77,7 @@
     </template>
 
     <template v-else-if="activeTab === 'headers'">
-      <HeadersManager />
+      <RequestRewriteManager />
     </template>
 
     <CookieDetail
@@ -129,7 +129,7 @@ import { useClipboardStore } from '@/stores/clipboardStore'
 import { useSettingStore } from '@/stores/settingStore'
 import { useLocalStorageStore } from '@/stores/localStorageStore'
 import { useSessionStorageStore } from '@/stores/sessionStorageStore'
-import { useHeaderRuleStore } from '@/stores/headerRuleStore'
+import { useHeaderRuleStore } from '@/stores/requestRewriteStore'
 import { cookieManager } from '@/services/cookieManager'
 import { storageService } from '@/services/storageService'
 import type { CookieItem, StorageItem } from '@/types'
@@ -141,7 +141,7 @@ import SettingsPanel from '@/devtools/components/SettingsPanel.vue'
 import TabNav from '@/manager/components/TabNav.vue'
 import StorageList from '@/devtools/components/StorageList.vue'
 import StorageDetail from '@/devtools/components/StorageDetail.vue'
-import HeadersManager from '@/manager/components/HeadersManager.vue'
+import RequestRewriteManager from '@/manager/components/RequestRewriteManager.vue'
 
 const cookieStore = useCookieStore()
 const clipboardStore = useClipboardStore()

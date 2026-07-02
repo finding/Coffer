@@ -1,19 +1,24 @@
-// src/services/headerRuleStorage.ts
+// src/services/requestRewriteStorage.ts
 
-import type { HeaderProfile } from '@/types'
+import type { RequestRewriteProfile } from '@/types'
+import { checkAndMigrate } from './dataMigration'
 
-const PROFILES_KEY = 'headerProfiles'
+const PROFILES_KEY = 'headerProfiles' // 保持key不变，兼容迁移
 const ACTIVE_PROFILE_KEY = 'activeHeaderProfileId'
 
-const DEFAULT_PROFILE: HeaderProfile = {
+const DEFAULT_PROFILE: RequestRewriteProfile = {
   id: 'default',
   name: 'Default',
   enabled: true,
   rules: []
 }
 
-export class HeaderRuleStorage {
-  async getProfiles(): Promise<HeaderProfile[]> {
+export class RequestRewriteStorage {
+  async init(): Promise<void> {
+    await checkAndMigrate()
+  }
+
+  async getProfiles(): Promise<RequestRewriteProfile[]> {
     const result = await chrome.storage.local.get(PROFILES_KEY)
     const profiles = result[PROFILES_KEY]
     if (!profiles || !Array.isArray(profiles)) {
@@ -22,11 +27,10 @@ export class HeaderRuleStorage {
     return profiles
   }
 
-  async saveProfiles(profiles: HeaderProfile[]): Promise<void> {
+  async saveProfiles(profiles: RequestRewriteProfile[]): Promise<void> {
     const data = JSON.parse(JSON.stringify(profiles))
     await chrome.storage.local.set({ [PROFILES_KEY]: data })
-    const verify = await chrome.storage.local.get(PROFILES_KEY)
-    console.log('[HeaderStorage] saved', verify[PROFILES_KEY]?.length, 'profiles')
+    console.log('[RequestRewriteStorage] saved', profiles.length, 'profiles')
   }
 
   async getActiveProfileId(): Promise<string | null> {
@@ -42,11 +46,11 @@ export class HeaderRuleStorage {
     }
   }
 
-  async getActiveProfile(): Promise<HeaderProfile | null> {
+  async getActiveProfile(): Promise<RequestRewriteProfile | null> {
     const profiles = await this.getProfiles()
     const activeId = await this.getActiveProfileId()
     return profiles.find(p => p.id === activeId) ?? null
   }
 }
 
-export const headerRuleStorage = new HeaderRuleStorage()
+export const requestRewriteStorage = new RequestRewriteStorage()

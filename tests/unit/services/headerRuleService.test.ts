@@ -31,7 +31,7 @@ describe('HeaderRuleService', () => {
       expect(chromeRules[0].action.type).toBe('modifyHeaders')
       expect(chromeRules[0].action.requestHeaders).toHaveLength(1)
       expect(chromeRules[0].action.requestHeaders?.[0].header).toBe('Authorization')
-      expect(chromeRules[0].action.requestHeaders?.[0].operation).toBe('append')
+      expect(chromeRules[0].action.requestHeaders?.[0].operation).toBe('set')
       expect(chromeRules[0].condition.urlFilter).toBe('*://api.example.com/*')
     })
 

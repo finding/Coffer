@@ -1,51 +1,56 @@
-# Task 4 Report: Pinia Store Implementation
+# Task 4 Report: 变量Store
 
 ## Status: DONE
 
 ## Summary
 
-Successfully created the Pinia store for header rules management (`src/stores/headerRuleStore.ts`) along with all required dependency files.
+Successfully created the Pinia store for variable management (`src/stores/variableStore.ts`).
 
 ## Files Created
 
-1. **`src/types/headerRule.ts`** - Type definitions for header rules
-   - `HttpMethod`, `HeaderTarget`, `HeaderAction` types
-   - `HeaderRule`, `HeaderProfile`, `HeaderProfilesExport` interfaces
+1. **`src/stores/variableStore.ts`** - Pinia store for managing variables with:
+   - State: `presetVariables`, `autoExtractVariables`, `extractedValues`
+   - CRUD: `addPresetVariable`, `updatePresetVariable`, `deletePresetVariable`, `addAutoExtractVariable`, `deleteAutoExtractVariable`
+   - Variable resolution: `resolveVariable(value: string): string`
+   - Runtime extraction: `setExtractedValue(name, value)`
 
-2. **`src/types/index.ts`** - Updated to export header rule types and extend `MessagePayload` interface
+## Store Exports and Methods
 
-3. **`src/services/headerRuleStorage.ts`** - Storage service for header profiles
-   - `getProfiles()`, `saveProfiles()`
-   - `getActiveProfileId()`, `setActiveProfileId()`
-   - `getActiveProfile()`
+### Reactive State
+- `presetVariables: Ref<PresetVariable[]>` - List of user-defined static variables
+- `autoExtractVariables: Ref<AutoExtractVariable[]>` - List of auto-extract variable configurations
+- `extractedValues: Ref<Map<string, string>>` - Runtime map of extracted values from pages
 
-4. **`src/services/headerRuleService.ts`** - Core service for Chrome API sync
-   - `syncRulesToChrome()` - Syncs profiles to Chrome declarativeNetRequest API
-   - `convertToChromeRules()` - Converts internal rules to Chrome format
-   - `clearAllRules()`, `initialize()`
+### Methods
+- `loadVariables()` - Load all variables from Chrome storage
+- `addPresetVariable(variable)` - Add a new preset variable
+- `updatePresetVariable(name, updates)` - Update an existing preset variable
+- `deletePresetVariable(name)` - Delete a preset variable
+- `addAutoExtractVariable(variable)` - Add a new auto-extract variable
+- `deleteAutoExtractVariable(name)` - Delete an auto-extract variable
+- `resolveVariable(value: string): string` - Resolve `{{varName}}` references in strings
+- `setExtractedValue(name, value)` - Set runtime extracted values (called by content script)
 
-5. **`src/stores/headerRuleStore.ts`** - Pinia store with:
-   - State: `profiles`, `activeProfileId`, `activeProfile`, `loading`, `error`
-   - Actions: `loadProfiles`, `saveProfiles`, `setActiveProfile`
-   - CRUD: `createProfile`, `updateProfile`, `deleteProfile`
-   - Rule management: `addRule`, `updateRule`, `deleteRule`, `reorderRules`
+### Variable Resolution Priority
+1. Extracted values (runtime, from page extraction)
+2. Preset variables (static, user-defined)
 
-## Changes Made
+## Build Verification Results
 
-- Fixed Chrome API type compatibility issues:
-  - Used `chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS` for all header modifications
-  - Used `chrome.declarativeNetRequest.HeaderOperation` enum values (APPEND, SET, REMOVE)
-  - Used `chrome.declarativeNetRequest.ResourceType` enum values for resource types
+```
+> vue-tsc --noEmit && vite build
+✓ 73 modules transformed.
+✓ built in 907ms
+```
 
-## Verification
-
-- TypeScript type check: PASSED
-- Build: PASSED
+Build passed successfully.
 
 ## Commit
 
 ```
-feat: add header rule Pinia store
-
-Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+f2f5eb6 - feat: add variable store with resolveVariable
 ```
+
+## Concerns or Blockers
+
+None. Implementation complete and verified.

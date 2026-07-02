@@ -17,7 +17,7 @@
           currentMode === m ? 'bg-white shadow' : 'hover:bg-gray-100'
         ]"
       >
-        {{ m === 'cookies' ? 'Cookies' : m === 'local' ? 'Local' : m === 'session' ? 'Session' : 'Headers' }}
+        {{ m === 'cookies' ? 'Cookies' : m === 'local' ? 'Local' : m === 'session' ? 'Session' : 'Rewrite' }}
       </button>
     </div>
 
@@ -55,7 +55,7 @@ import { useClipboardStore } from '@/stores/clipboardStore'
 import { useSettingStore } from '@/stores/settingStore'
 import { useLocalStorageStore } from '@/stores/localStorageStore'
 import { useSessionStorageStore } from '@/stores/sessionStorageStore'
-import { useHeaderRuleStore } from '@/stores/headerRuleStore'
+import { useHeaderRuleStore } from '@/stores/requestRewriteStore'
 import { cookieManager } from '@/services/cookieManager'
 import { storageService } from '@/services/storageService'
 import type { CookieItem, StorageItem } from '@/types'

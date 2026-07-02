@@ -38,7 +38,7 @@
           <div class="flex-1 min-w-0">
             <div class="font-medium truncate">{{ rule.name }}</div>
             <div class="text-xs text-gray-500 truncate">
-              {{ rule.headerName }} · {{ rule.target }} · {{ rule.action }}
+              {{ rule.headers.length > 0 ? rule.headers[0].headerName : 'No headers' }} · {{ rule.target }}
             </div>
           </div>
         </div>
@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useHeaderRuleStore } from '@/stores/headerRuleStore'
+import { useHeaderRuleStore } from '@/stores/requestRewriteStore'
 
 const store = useHeaderRuleStore()
 

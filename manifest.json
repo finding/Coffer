@@ -30,6 +30,14 @@
     "service_worker": "background.js",
     "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -40,6 +48,7 @@
       "resources": [
         "src/manager/index.html",
         "manager.js",
+        "injected.js",
         "chunks/*",
         "assets/*"
       ],

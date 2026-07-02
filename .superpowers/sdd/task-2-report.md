@@ -1,47 +1,73 @@
-# Task 2 Report: Header Rule Storage Service
+# Task 2 Report: Data Migration Service
 
-## Files Created
+## Files Created/Modified
 
-1. `src/types/headerRule.ts` - Type definitions for header rules
-2. `src/services/headerRuleStorage.ts` - Header rule storage service (exact code from brief)
+| File | Action |
+|------|--------|
+| `src/services/dataMigration.ts` | Created |
+| `tests/unit/services/dataMigration.test.ts` | Created |
 
-## Files Modified
+## Functions Exported
 
-1. `src/types/index.ts` - Added re-export for header rule types
+### `src/services/dataMigration.ts`
 
-## Changes Made
+1. **`migrateRule(old: LegacyHeaderRule): RequestRewriteRule`**
+   - Converts a single legacy header rule to the new RequestRewriteRule format
+   - Preserves all original fields (id, enabled, name, urlPattern, methods, target)
+   - Wraps single header action into `headers` array
+   - Initializes `bodyRewrites` as empty array
 
-### Types (headerRule.ts)
-- Added `HeaderRuleType` type: `'request' | 'response'`
-- Added `HeaderRuleAction` type: `'add' | 'modify' | 'remove'`
-- Added `HeaderRule` interface with id, enabled, type, action, headerName, headerValue, matchUrl, matchPattern
-- Added `HeaderProfile` interface with id, name, enabled, rules array
+2. **`migrateProfile(old: LegacyHeaderProfile): RequestRewriteProfile`**
+   - Converts a legacy profile to RequestRewriteProfile format
+   - Preserves profile metadata (id, name, enabled)
+   - Maps all rules using `migrateRule()`
 
-### Storage Service (headerRuleStorage.ts)
-- Implemented `HeaderRuleStorage` class with:
-  - `getProfiles()` - Retrieves all header profiles from chrome.storage.local
-  - `saveProfiles()` - Saves profiles to chrome.storage.local
-  - `getActiveProfileId()` - Gets the currently active profile ID
-  - `setActiveProfileId()` - Sets or clears the active profile ID
-  - `getActiveProfile()` - Retrieves the full active profile object
-- Exported singleton instance `headerRuleStorage`
-- Uses default profile with id 'default' when no profiles exist
+3. **`checkAndMigrate(): Promise<boolean>`**
+   - Checks storage version and performs migration if needed
+   - Uses `rewriteStorageVersion` key for version tracking
+   - Current version: 2
+   - Returns `true` if migration was performed, `false` otherwise
+   - Safely handles cases where no profiles exist
 
-## Issues Encountered
+## Tests Run and Results
 
-**Task 1 incomplete**: The brief stated Task 1 (header rule types) was completed, but the file `src/types/headerRule.ts` did not exist. I created it to satisfy the dependency for Task 2.
+```
+Test Files  1 passed (1)
+     Tests  12 passed (12)
+```
 
-## Verification
+### Test Coverage
 
-- Build passed successfully with `npm run build`
-- No TypeScript errors
-- All existing tests continue to pass
+| Suite | Test | Result |
+|-------|------|--------|
+| migrateRule | should migrate a single rule with all fields preserved | PASS |
+| migrateRule | should migrate a modify action rule | PASS |
+| migrateRule | should migrate a remove action rule | PASS |
+| migrateRule | should initialize bodyRewrites as empty array | PASS |
+| migrateProfile | should migrate a profile with multiple rules | PASS |
+| migrateProfile | should migrate a profile with empty rules | PASS |
+| checkAndMigrate | should return false when already at current version | PASS |
+| checkAndMigrate | should return false when version is higher than current | PASS |
+| checkAndMigrate | should migrate from v1 to v2 | PASS |
+| checkAndMigrate | should migrate when no version key exists (defaults to v1) | PASS |
+| checkAndMigrate | should do nothing when no headerProfiles exist | PASS |
+| checkAndMigrate | should preserve profile data during migration | PASS |
 
-## Commit
+## Commits Made
 
-SHA: `e537800`
-Message: `feat: add header rule storage service`
+| Commit | Message |
+|--------|---------|
+| `86b6d08` | feat: add data migration service for RequestRewrite |
 
-## Status
+## Concerns or Blockers
 
-DONE
+None. Task completed successfully with full test coverage.
+
+### Notes
+
+- The migration logic handles edge cases:
+  - Version already at or above current version
+  - No existing profiles to migrate
+  - Empty profile rules arrays
+- Storage key `headerProfiles` is preserved for backward compatibility
+- Version key `rewriteStorageVersion` is used for migration state tracking

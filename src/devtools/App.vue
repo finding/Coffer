@@ -13,7 +13,7 @@
           @click="activePanel = 'headers'"
           :class="['px-3 py-1 text-sm rounded', activePanel === 'headers' ? 'bg-blue-500 text-white' : 'bg-gray-200']"
         >
-          Headers
+          Rewrite
         </button>
       </div>
       <div class="flex-1"></div>
@@ -79,7 +79,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useCookieStore } from '@/stores/cookieStore'
 import { useClipboardStore } from '@/stores/clipboardStore'
 import { useSettingStore } from '@/stores/settingStore'
-import { useHeaderRuleStore } from '@/stores/headerRuleStore'
+import { useHeaderRuleStore } from '@/stores/requestRewriteStore'
 import { cookieManager } from '@/services/cookieManager'
 import { storageService } from '@/services/storageService'
 import type { CookieItem } from '@/types'

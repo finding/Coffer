@@ -1,38 +1,78 @@
-# Task 1 Report: 类型定义和权限配置
+# Task 1 Report: 类型定义扩展 (RequestRewrite)
 
 ## Status: DONE
 
 ## Files Created/Modified
 
 ### Created
-- `/Users/ken/Desktop/AI/.claude/worktrees/agent-a267b7fc73f22099c/src/types/headerRule.ts`
-  - Defined `HttpMethod` type union
-  - Defined `HeaderTarget` type union
-  - Defined `HeaderAction` type union
-  - Defined `HeaderRule` interface
-  - Defined `HeaderProfile` interface
-  - Defined `HeaderProfilesExport` interface
+- `/Users/ken/Desktop/AI/src/types/requestRewrite.ts`
+  - Defined `BodyRewriteMethod` type union: 'text' | 'jsonPath' | 'regex' | 'script'
+  - Defined `HeaderRuleAction` interface for single header modification action
+  - Defined `BodyRewriteAction` interface for body rewrite operations
+  - Defined `RequestRewriteRule` interface (supports multiple headers and body rewrites)
+  - Defined `RequestRewriteProfile` interface
+  - Defined `LegacyHeaderRule` interface for migration
+  - Defined `LegacyHeaderProfile` interface for migration
+  - Defined `RequestRewriteProfilesExport` interface
+
+- `/Users/ken/Desktop/AI/src/types/variable.ts`
+  - Defined `PresetVariable` interface (static user-defined variables)
+  - Defined `AutoExtractVariable` interface (dynamic from localStorage/sessionStorage/cookie/meta)
+  - Defined `Variable` union type
+
+- `/Users/ken/Desktop/AI/tests/unit/types/requestRewrite.test.ts`
+  - 17 tests covering all RequestRewrite types
+
+- `/Users/ken/Desktop/AI/tests/unit/types/variable.test.ts`
+  - 9 tests covering all Variable types
 
 ### Modified
-- `/Users/ken/Desktop/AI/.claude/worktrees/agent-a267b7fc73f22099c/src/types/index.ts`
-  - Added `import type { HeaderProfile } from './headerRule'` at top
-  - Extended `MessagePayload.action` with 5 new action types: `getHeaderProfiles`, `setHeaderProfiles`, `syncHeaderRules`, `exportHeaderProfiles`, `importHeaderProfiles`
-  - Added new fields to `MessagePayload`: `profiles`, `profileId`, `ruleId`, `profileData`, `jsonString`
-  - Added `export * from './headerRule'` at end
+- `/Users/ken/Desktop/AI/src/types/index.ts`
+  - Added `export * from './requestRewrite'`
+  - Added `export * from './variable'`
 
-- `/Users/ken/Desktop/AI/.claude/worktrees/agent-a267b7fc73f22099c/manifest.json`
-  - Added `declarativeNetRequest` permission
-  - Added `declarativeNetRequestFeedback` permission
+## Types Exported
+From `requestRewrite.ts`:
+- `HttpMethod` (re-exported from headerRule)
+- `HeaderTarget` (re-exported from headerRule)
+- `BodyRewriteMethod`
+- `HeaderRuleAction`
+- `BodyRewriteAction`
+- `RequestRewriteRule`
+- `RequestRewriteProfile`
+- `LegacyHeaderRule`
+- `LegacyHeaderProfile`
+- `RequestRewriteProfilesExport`
 
-## Changes Made
-1. Created comprehensive TypeScript type definitions for the header modification feature
-2. Extended the existing message payload interface to support header profile operations
-3. Added required Chrome API permissions for declarative net request functionality
+From `variable.ts`:
+- `PresetVariable`
+- `AutoExtractVariable`
+- `Variable`
 
-## Issues Encountered
-- Initial TypeScript error: `HeaderProfile` was used in `MessagePayload` before being exported. Fixed by adding a type import at the top of `index.ts`.
-- Pre-existing Vue module errors (.vue file imports) were observed but are unrelated to this task.
+## Tests Run
+```
+npm test -- tests/unit/types/ --run
+ ✓ tests/unit/types/variable.test.ts  (9 tests)
+ ✓ tests/unit/types/requestRewrite.test.ts  (17 tests)
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+```
+
+## Build Verification
+```
+npm run build
+✓ built in 915ms
+```
 
 ## Commit
-- SHA: `ac2c84a`
-- Message: `feat: add header rule types and permissions`
+- SHA: `aed8feb`
+- Message: `feat: add RequestRewrite and Variable type definitions`
+
+## Notes
+- Type naming: Used `HeaderRuleAction` instead of `HeaderAction` to avoid conflict with existing `HeaderAction` type in `headerRule.ts` (which is a string union for action types)
+- Reused `HttpMethod` and `HeaderTarget` from existing `headerRule.ts` to maintain consistency
+- Added `LegacyHeaderRule` and `LegacyHeaderProfile` interfaces to support data migration from old format
+
+## Concerns
+None. All types compile correctly, tests pass, and build succeeds.

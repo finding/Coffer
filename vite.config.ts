@@ -22,7 +22,9 @@ export default defineConfig({
         popup: resolve(__dirname, 'src/popup/index.html'),
         devtools: resolve(__dirname, 'src/devtools/index.html'),
         manager: resolve(__dirname, 'src/manager/index.html'),
-        background: resolve(__dirname, 'src/background/index.ts')
+        background: resolve(__dirname, 'src/background/index.ts'),
+        content: resolve(__dirname, 'src/content/index.ts'),
+        injected: resolve(__dirname, 'src/content/injected.ts')
       },
       output: {
         entryFileNames: '[name].js',

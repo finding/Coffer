@@ -1,7 +1,8 @@
 import { storageService } from '@/services/storageService'
-import { headerRuleStorage } from '@/services/headerRuleStorage'
 import { headerRuleService } from '@/services/headerRuleService'
-import type { MessagePayload, MessageResponse, StorageItem, HeaderProfile } from '@/types'
+import { requestRewriteStorage } from '@/services/requestRewriteStorage'
+import { variableStorage } from '@/services/variableStorage'
+import type { MessagePayload, MessageResponse, StorageItem, RequestRewriteProfile } from '@/types'
 
 chrome.runtime.onInstalled.addListener(async () => {
   console.log('Coffer installed')
@@ -61,28 +62,55 @@ async function handleMessage(message: MessagePayload): Promise<MessageResponse> 
       await setStorageClipboard(message.storageType as 'local' | 'session', message.data as StorageItem[])
       return { success: true }
     case 'getHeaderProfiles':
-      return { success: true, data: await headerRuleStorage.getProfiles() }
+      return { success: true, data: await requestRewriteStorage.getProfiles() }
     case 'setHeaderProfiles':
-      await headerRuleStorage.saveProfiles(message.profiles as HeaderProfile[])
+      await requestRewriteStorage.saveProfiles(message.profiles as RequestRewriteProfile[])
       return { success: true }
     case 'syncHeaderRules':
-      const profile = message.profileData as HeaderProfile | null
+      const profile = message.profileData as RequestRewriteProfile | null
       await headerRuleService.syncRulesToChrome(profile)
       return { success: true }
     case 'exportHeaderProfiles':
-      const exportProfiles = await headerRuleStorage.getProfiles()
+      const exportProfiles = await requestRewriteStorage.getProfiles()
       return { success: true, data: JSON.stringify({ version: '1.0', profiles: exportProfiles }, null, 2) }
     case 'importHeaderProfiles':
       try {
         const parsed = JSON.parse(message.jsonString as string)
         if (parsed.version && Array.isArray(parsed.profiles)) {
-          await headerRuleStorage.saveProfiles(parsed.profiles)
+          await requestRewriteStorage.saveProfiles(parsed.profiles)
           return { success: true }
         }
         return { success: false, error: 'Invalid format' }
       } catch {
         return { success: false, error: 'Parse error' }
       }
+    case 'getRequestRewriteRules': {
+      const profile = await requestRewriteStorage.getActiveProfile()
+      const presetVars = await variableStorage.getPresetVariables()
+
+      const variables: Record<string, string> = {}
+      for (const v of presetVars) {
+        variables[v.name] = v.value
+      }
+
+      return {
+        success: true,
+        data: {
+          rules: profile?.rules || [],
+          variables
+        }
+      }
+    }
+    case 'requestRewriteRulesUpdated':
+      // Broadcast to all tabs
+      chrome.tabs.query({}, (tabs) => {
+        for (const tab of tabs) {
+          if (tab.id) {
+            chrome.tabs.sendMessage(tab.id, { action: 'REQUEST_REWRITE_RULES_UPDATED' }).catch(() => {})
+          }
+        }
+      })
+      return { success: true }
     default:
       return { success: false, error: 'Unknown action' }
   }

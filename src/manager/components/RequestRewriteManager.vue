@@ -59,7 +59,7 @@
           <div class="flex-1 min-w-0">
             <div class="font-medium break-all">{{ rule.name }}</div>
             <div class="text-sm text-gray-500 break-all">
-              {{ rule.headerName }}: {{ rule.action !== 'remove' ? rule.headerValue : '(removed)' }}
+              {{ rule.headers.length }} header(s), {{ rule.bodyRewrites.length }} body rewrite(s)
             </div>
             <div class="text-xs text-gray-400 mt-1 break-all">
               {{ rule.urlPattern }} · {{ rule.methods.join(', ') || 'ALL' }} · {{ rule.target }}
@@ -154,7 +154,7 @@
 
     <!-- New/Edit Rule Modal -->
     <div v-if="showNewRuleModal || editingRule" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeRuleModal">
-      <div class="bg-white rounded-lg p-4 w-[400px]">
+      <div class="bg-white rounded-lg p-4 w-[500px] max-h-[80vh] overflow-y-auto">
         <h3 class="text-lg font-semibold mb-3">{{ editingRule ? 'Edit Rule' : 'New Rule' }}</h3>
 
         <div class="space-y-3">
@@ -190,32 +190,93 @@
             </div>
           </div>
 
-          <div class="flex gap-3">
-            <div class="flex-1">
-              <label class="block text-sm font-medium mb-1">Target</label>
-              <select v-model="ruleForm.target" class="w-full px-3 py-2 border rounded">
-                <option value="request">Request Header</option>
-                <option value="response">Response Header</option>
-              </select>
-            </div>
-            <div class="flex-1">
-              <label class="block text-sm font-medium mb-1">Action</label>
-              <select v-model="ruleForm.action" class="w-full px-3 py-2 border rounded">
+          <div>
+            <label class="block text-sm font-medium mb-1">Target</label>
+            <select v-model="ruleForm.target" class="w-full px-3 py-2 border rounded">
+              <option value="request">Request</option>
+              <option value="response">Response</option>
+            </select>
+          </div>
+
+          <!-- Tab Switcher -->
+          <div class="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <button
+              @click="ruleEditTab = 'headers'"
+              :class="['flex-1 px-3 py-1.5 rounded text-sm font-medium transition-colors', ruleEditTab === 'headers' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-800']"
+            >
+              Headers ({{ ruleForm.headers.length }})
+            </button>
+            <button
+              @click="ruleEditTab = 'body'"
+              :class="['flex-1 px-3 py-1.5 rounded text-sm font-medium transition-colors', ruleEditTab === 'body' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-800']"
+            >
+              Body ({{ ruleForm.bodyRewrites.length }})
+            </button>
+          </div>
+
+          <!-- Headers Tab -->
+          <div v-show="ruleEditTab === 'headers'" class="space-y-2">
+            <div v-for="(header, idx) in ruleForm.headers" :key="idx" class="flex gap-2 items-center p-2 bg-gray-50 rounded">
+              <select v-model="header.action" class="px-2 py-1.5 border rounded text-sm w-20 shrink-0">
                 <option value="add">Add</option>
                 <option value="modify">Modify</option>
                 <option value="remove">Remove</option>
               </select>
+              <input v-model="header.headerName" type="text" placeholder="Header Name" class="flex-1 min-w-0 px-2 py-1.5 border rounded text-sm" />
+              <input v-if="header.action !== 'remove'" v-model="header.headerValue" type="text" placeholder="Value" class="flex-1 min-w-0 px-2 py-1.5 border rounded text-sm" />
+              <button @click="ruleForm.headers.splice(idx, 1)" :disabled="ruleForm.headers.length === 1" class="shrink-0 w-8 h-8 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-30">
+                ✕
+              </button>
             </div>
+            <button @click="ruleForm.headers.push({ action: 'add', headerName: '', headerValue: '' })" class="w-full px-3 py-1.5 border border-dashed rounded text-sm text-gray-500 hover:text-blue-500 hover:border-blue-300">
+              + Add Header Action
+            </button>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium mb-1">Header Name</label>
-            <input v-model="ruleForm.headerName" type="text" placeholder="Authorization" class="w-full px-3 py-2 border rounded" />
-          </div>
-
-          <div v-if="ruleForm.action !== 'remove'">
-            <label class="block text-sm font-medium mb-1">Header Value</label>
-            <input v-model="ruleForm.headerValue" type="text" placeholder="Bearer token123" class="w-full px-3 py-2 border rounded" />
+          <!-- Body Tab -->
+          <div v-show="ruleEditTab === 'body'" class="space-y-2">
+            <div v-for="(rewrite, idx) in ruleForm.bodyRewrites" :key="idx" class="p-3 bg-gray-50 rounded space-y-2">
+              <div class="flex gap-2 items-center">
+                <select v-model="rewrite.method" class="px-2 py-1.5 border rounded text-sm w-28">
+                  <option value="text">Text</option>
+                  <option value="jsonPath">JSON Path</option>
+                  <option value="regex">Regex</option>
+                  <option value="script">Script</option>
+                </select>
+                <button @click="openRewriteTest(idx)" class="p-1.5 text-gray-500 hover:text-blue-500 hover:bg-blue-50 rounded" title="Test">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+                <button @click="ruleForm.bodyRewrites.splice(idx, 1)" class="px-2 py-1.5 text-red-500 hover:text-red-700 ml-auto">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+              <!-- Text method -->
+              <template v-if="rewrite.method === 'text'">
+                <input v-model="rewrite.find" type="text" placeholder="Find" class="w-full px-2 py-1.5 border rounded text-sm" />
+                <input v-model="rewrite.replace" type="text" placeholder="Replace" class="w-full px-2 py-1.5 border rounded text-sm" />
+              </template>
+              <!-- JSON Path method -->
+              <template v-else-if="rewrite.method === 'jsonPath'">
+                <input v-model="rewrite.path" type="text" placeholder="data.token" class="w-full px-2 py-1.5 border rounded text-sm" />
+                <input v-model="rewrite.value" type="text" placeholder="New value (use {{varName}})" class="w-full px-2 py-1.5 border rounded text-sm" />
+              </template>
+              <!-- Regex method -->
+              <template v-else-if="rewrite.method === 'regex'">
+                <input v-model="rewrite.pattern" type="text" placeholder="Pattern (e.g. &quot;token&quot;:[^&quot;]+)" class="w-full px-2 py-1.5 border rounded text-sm" />
+                <input v-model="rewrite.replacement" type="text" placeholder="Replacement" class="w-full px-2 py-1.5 border rounded text-sm" />
+              </template>
+              <!-- Script method -->
+              <template v-else-if="rewrite.method === 'script'">
+                <textarea v-model="rewrite.scriptBody" rows="4" placeholder="(body) => body.replace(/old/g, 'new')" class="w-full px-2 py-1.5 border rounded text-sm font-mono"></textarea>
+              </template>
+            </div>
+            <button @click="addBodyRewrite" class="w-full px-3 py-1.5 border border-dashed rounded text-sm text-gray-500 hover:text-blue-500 hover:border-blue-300">
+              + Add Body Rewrite
+            </button>
           </div>
         </div>
 
@@ -291,6 +352,55 @@
       </div>
     </div>
 
+    <!-- Rewrite Test Modal -->
+    <div v-if="showRewriteTestModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showRewriteTestModal = false">
+      <div class="bg-white rounded-lg p-4 w-[500px] max-h-[80vh] overflow-auto">
+        <h3 class="text-lg font-semibold mb-3">Test Body Rewrite</h3>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1 text-gray-600">Method</label>
+          <div class="px-3 py-2 bg-gray-100 rounded text-sm capitalize">{{ rewriteTestMethod }}</div>
+        </div>
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">Test Input</label>
+          <textarea
+            v-model="rewriteTestInput"
+            rows="4"
+            placeholder='{"token": "old_value", "name": "test"}'
+            class="w-full px-3 py-2 border rounded text-sm font-mono"
+          ></textarea>
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Result</label>
+          <div class="px-3 py-2 bg-gray-50 rounded text-sm">
+            <template v-if="rewriteTestInput">
+              <div v-if="rewriteTestResult.error" class="text-red-600">
+                ✗ {{ rewriteTestResult.error }}
+              </div>
+              <template v-else>
+                <div v-if="rewriteTestResult.highlightedParts" class="font-mono whitespace-pre-wrap break-all">
+                  <template v-for="(part, idx) in rewriteTestResult.highlightedParts" :key="idx">
+                    <span v-if="part.highlighted" class="bg-yellow-200">{{ part.text }}</span>
+                    <span v-else>{{ part.text }}</span>
+                  </template>
+                </div>
+                <div v-else class="text-green-600">
+                  ✓ Matched and replaced
+                </div>
+                <div v-if="rewriteTestResult.output" class="mt-2 pt-2 border-t">
+                  <div class="text-xs text-gray-500 mb-1">Output:</div>
+                  <pre class="text-xs bg-white p-2 rounded overflow-auto max-h-32">{{ rewriteTestResult.output }}</pre>
+                </div>
+              </template>
+            </template>
+            <span v-else class="text-gray-400">Enter test input</span>
+          </div>
+        </div>
+        <div class="flex justify-end">
+          <button @click="showRewriteTestModal = false" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Close</button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="message" class="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
       <div :class="['p-3 rounded-lg shadow-lg text-sm', messageClass]">
         {{ message }}
@@ -301,16 +411,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useHeaderRuleStore } from '@/stores/headerRuleStore'
-import type { HeaderRule, HeaderProfile, HttpMethod, HeaderTarget, HeaderAction } from '@/types'
+import { useRequestRewriteStore } from '@/stores/requestRewriteStore'
+import type { RequestRewriteRule, RequestRewriteProfile, HttpMethod, HeaderTarget, HeaderRuleAction, BodyRewriteAction } from '@/types'
 
-const store = useHeaderRuleStore()
+const store = useRequestRewriteStore()
 
 const selectedProfileId = ref<string | null>(null)
 const showNewProfileModal = ref(false)
 const showNewRuleModal = ref(false)
-const editingRule = ref<HeaderRule | null>(null)
-const editingProfile = ref<HeaderProfile | null>(null)
+const editingRule = ref<RequestRewriteRule | null>(null)
+const editingProfile = ref<RequestRewriteProfile | null>(null)
 const editingProfileName = ref('')
 const newProfileName = ref('')
 const message = ref('')
@@ -336,6 +446,148 @@ const confirmModal = ref<{
 
 const showPatternTestModal = ref(false)
 const patternTestUrl = ref('')
+
+// Rewrite test state
+const showRewriteTestModal = ref(false)
+const rewriteTestIndex = ref(0)
+const rewriteTestInput = ref('')
+const rewriteTestMethod = ref('text')
+
+interface RewriteTestPart {
+  text: string
+  highlighted: boolean
+}
+
+const rewriteTestResult = computed(() => {
+  const rewrite = ruleForm.value.bodyRewrites[rewriteTestIndex.value]
+  if (!rewrite || !rewriteTestInput.value) {
+    return { error: '', output: '', highlightedParts: [] as RewriteTestPart[] }
+  }
+
+  try {
+    let output = rewriteTestInput.value
+    const parts: RewriteTestPart[] = []
+
+    switch (rewrite.method) {
+      case 'text': {
+        if (rewrite.find) {
+          // Highlight matched parts
+          let idx = 0
+          let pos = output.indexOf(rewrite.find)
+          while (pos !== -1 && idx < 10) { // Limit to 10 matches
+            if (pos > idx) {
+              parts.push({ text: output.slice(idx, pos), highlighted: false })
+            }
+            parts.push({ text: rewrite.find, highlighted: true })
+            idx = pos + rewrite.find.length
+            pos = output.indexOf(rewrite.find, idx)
+          }
+          if (idx < output.length) {
+            parts.push({ text: output.slice(idx), highlighted: false })
+          }
+          output = output.split(rewrite.find).join(rewrite.replace || '')
+        }
+        break
+      }
+      case 'jsonPath': {
+        if (rewrite.path && rewrite.value) {
+          const json = JSON.parse(output)
+          // Simple path resolution
+          const pathParts = rewrite.path.split('.')
+          let current = json
+          for (let i = 0; i < pathParts.length - 1; i++) {
+            if (!current[pathParts[i]]) {
+              return { error: `Path not found: ${pathParts[i]}`, output: '', highlightedParts: [] }
+            }
+            current = current[pathParts[i]]
+          }
+          const lastKey = pathParts[pathParts.length - 1]
+          current[lastKey] = rewrite.value
+          output = JSON.stringify(json, null, 2)
+        }
+        break
+      }
+      case 'regex': {
+        if (rewrite.pattern) {
+          try {
+            // Parse pattern - handle both /pattern/flags and raw pattern
+            let pattern = rewrite.pattern
+            let flags = 'g'
+            if (pattern.startsWith('/') && pattern.lastIndexOf('/') > 0) {
+              const lastSlash = pattern.lastIndexOf('/')
+              flags = pattern.slice(lastSlash + 1) || 'g'
+              pattern = pattern.slice(1, lastSlash)
+            }
+            const regex = new RegExp(pattern, flags)
+            // Highlight matches
+            output = rewriteTestInput.value.replace(regex, rewrite.replacement || '')
+            // Show if there were matches
+            const matches = rewriteTestInput.value.match(regex)
+            if (matches) {
+              parts.push({ text: `${matches.length} match(es) found`, highlighted: false })
+            }
+          } catch (e) {
+            return { error: 'Invalid regex: ' + (e instanceof Error ? e.message : 'unknown'), output: '', highlightedParts: [] }
+          }
+        }
+        break
+      }
+      case 'script': {
+        if (rewrite.scriptBody) {
+          // CSP prevents eval/new Function in extension UI
+          // Script execution only happens in injected page context
+          // We can only validate basic syntax patterns
+          const script = rewrite.scriptBody.trim()
+
+          // Basic validation checks
+          const checks = []
+          if (script.length === 0) {
+            return { error: 'Script body is empty', output: '', highlightedParts: [] }
+          }
+
+          // Check for balanced braces/parentheses
+          let braces = 0, parens = 0
+          for (const ch of script) {
+            if (ch === '{') braces++
+            if (ch === '}') braces--
+            if (ch === '(') parens++
+            if (ch === ')') parens--
+          }
+          if (braces !== 0) checks.push('Unbalanced braces')
+          if (parens !== 0) checks.push('Unbalanced parentheses')
+
+          // Check for return statement
+          if (!script.includes('return') && !script.startsWith('(body)') && !script.startsWith('body')) {
+            checks.push('Missing return statement')
+          }
+
+          if (checks.length > 0) {
+            return { error: 'Possible issues: ' + checks.join(', '), output: '', highlightedParts: [] }
+          }
+
+          // Show note about where script runs
+          parts.push({ text: '✓ Script syntax looks valid', highlighted: false })
+          parts.push({ text: '\nNote: Script runs in page context, not here', highlighted: false })
+          output = 'Script will be executed when request is intercepted'
+        }
+        break
+      }
+    }
+
+    return { error: '', output, highlightedParts: parts }
+  } catch (e) {
+    return { error: (e instanceof Error ? e.message : 'unknown error'), output: '', highlightedParts: [] }
+  }
+})
+
+function openRewriteTest(idx: number) {
+  const rewrite = ruleForm.value.bodyRewrites[idx]
+  if (!rewrite) return
+  rewriteTestIndex.value = idx
+  rewriteTestMethod.value = rewrite.method
+  rewriteTestInput.value = ''
+  showRewriteTestModal.value = true
+}
 
 interface PatternTestPart {
   text: string
@@ -448,10 +700,10 @@ const ruleForm = ref({
   urlPattern: '*://*/*',
   methods: ['ALL'] as HttpMethod[],
   target: 'request' as HeaderTarget,
-  action: 'add' as HeaderAction,
-  headerName: '',
-  headerValue: ''
+  headers: [{ action: 'add' as const, headerName: '', headerValue: '' }] as HeaderRuleAction[],
+  bodyRewrites: [] as BodyRewriteAction[]
 })
+const ruleEditTab = ref<'headers' | 'body'>('headers')
 
 const messageClass = computed(() =>
   messageType.value === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -498,7 +750,7 @@ function selectProfile(profileId: string) {
   store.setActiveProfile(profileId)
 }
 
-function editProfile(profile: HeaderProfile) {
+function editProfile(profile: RequestRewriteProfile) {
   editingProfile.value = profile
   editingProfileName.value = profile.name
 }
@@ -570,17 +822,19 @@ async function batchDelete() {
   )
 }
 
-function editRule(rule: HeaderRule) {
+function editRule(rule: RequestRewriteRule) {
   editingRule.value = rule
   ruleForm.value = {
     name: rule.name,
     urlPattern: rule.urlPattern,
     methods: [...rule.methods],
     target: rule.target,
-    action: rule.action,
-    headerName: rule.headerName,
-    headerValue: rule.headerValue
+    headers: rule.headers.length > 0
+      ? rule.headers.map(h => ({ ...h }))
+      : [{ action: 'add' as const, headerName: '', headerValue: '' }],
+    bodyRewrites: rule.bodyRewrites.map(b => ({ ...b }))
   }
+  ruleEditTab.value = 'headers'
 }
 
 async function deleteRule(ruleId: string) {
@@ -607,10 +861,10 @@ function resetRuleForm() {
     urlPattern: '*://*/*',
     methods: ['ALL'],
     target: 'request',
-    action: 'add',
-    headerName: '',
-    headerValue: ''
+    headers: [{ action: 'add', headerName: '', headerValue: '' }],
+    bodyRewrites: []
   }
+  ruleEditTab.value = 'headers'
 }
 
 async function saveRule() {
@@ -618,22 +872,21 @@ async function saveRule() {
     showMessage('Please select a profile first', 'error')
     return
   }
-  if (!ruleForm.value.name || !ruleForm.value.headerName) {
-    showMessage('Name and Header Name are required', 'error')
+  if (!ruleForm.value.name) {
+    showMessage('Name is required', 'error')
     return
   }
 
   try {
-    const ruleData: HeaderRule = {
+    const ruleData: RequestRewriteRule = {
       id: editingRule.value?.id ?? `rule-${Date.now()}`,
       enabled: editingRule.value?.enabled ?? true,
       name: ruleForm.value.name,
       urlPattern: ruleForm.value.urlPattern,
       methods: ruleForm.value.methods,
-      action: ruleForm.value.action,
-      headerName: ruleForm.value.headerName,
-      headerValue: ruleForm.value.headerValue,
-      target: ruleForm.value.target
+      target: ruleForm.value.target,
+      headers: ruleForm.value.headers.filter(h => h.headerName?.trim() !== ''),
+      bodyRewrites: ruleForm.value.bodyRewrites
     }
 
     if (editingRule.value) {
@@ -649,6 +902,14 @@ async function saveRule() {
     console.error('saveRule error:', e)
     showMessage('Failed to save rule: ' + (e instanceof Error ? e.message : 'Unknown error'), 'error')
   }
+}
+
+function addBodyRewrite() {
+  ruleForm.value.bodyRewrites.push({
+    method: 'text',
+    find: '',
+    replace: ''
+  })
 }
 
 function onDragStart(_e: DragEvent, index: number) {

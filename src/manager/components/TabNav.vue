@@ -29,6 +29,6 @@ const tabs = computed(() => [
   { id: 'cookies' as const, label: 'Cookies', count: props.counts?.cookies },
   { id: 'local' as const, label: 'LocalStorage', count: props.counts?.local },
   { id: 'session' as const, label: 'SessionStorage', count: props.counts?.session },
-  { id: 'headers' as const, label: 'Headers', count: props.counts?.headers }
+  { id: 'headers' as const, label: 'Rewrite', count: props.counts?.headers }
 ])
 </script>
