@@ -230,12 +230,45 @@
     return baseUrl + '?' + queryString
   }
 
+  // Normalize URL - convert relative URLs to absolute URLs
+  function normalizeUrl(url: string): string {
+    // First try: absolute URL
+    try {
+      new URL(url)
+      return url
+    } catch {}
+
+    // Second try: relative URL with page URL as base
+    try {
+      if (window.location.href && window.location.href !== 'about:blank') {
+        const absolute = new URL(url, window.location.href)
+        return absolute.href
+      }
+    } catch {}
+
+    // Third try: for about:blank or special URLs, use a dummy base
+    try {
+      const dummyBase = 'https://dummy.invalid/'
+      return new URL(url, dummyBase).href
+    } catch {
+      // Give up and return original
+      return url
+    }
+  }
+
   // Match URL pattern with wildcard support
   function matchUrlPattern(pattern: string, url: string): boolean {
     if (pattern === '*://*/*') return true
 
     try {
-      const urlObj = new URL(url)
+      // Get base URL for relative path resolution
+      let baseUrl = window.location.href
+      // Handle special cases where window.location.href is not a valid base
+      if (!baseUrl || baseUrl === 'about:blank' || baseUrl.startsWith('data:') || baseUrl.startsWith('blob:')) {
+        baseUrl = 'https://dummy.invalid/'
+      }
+
+      const urlObj = new URL(url, baseUrl)
       const [schemePattern, ...hostPathParts] = pattern.split('://')
       const hostPath = hostPathParts.join('://')
 
@@ -283,7 +316,11 @@
       const pathRegex = new RegExp('^' + escapedPath + '$')
       return pathRegex.test(urlObj.pathname)
     } catch (e) {
-      console.error('[RequestRewrite] Pattern match error:', e)
+      console.error('[RequestRewrite] Pattern match error:', e, {
+        pattern,
+        url,
+        baseUrl: window.location.href
+      })
       return false
     }
   }
@@ -322,7 +359,7 @@
     let url: string, method: string, body: BodyInit | null
 
     if (typeof input === 'string') {
-      url = input
+      url = normalizeUrl(input)
     } else if (input instanceof Request) {
       url = input.url
     } else if ((input as any).url) {
@@ -423,7 +460,7 @@
     const originalOpen = xhr.open
     xhr.open = function(method: string, url: string) {
       _method = method
-      _url = url
+      _url = normalizeUrl(url)
       _rules = findMatchingRules(_url, _method)
 
       // Apply GET params rewrite before opening
